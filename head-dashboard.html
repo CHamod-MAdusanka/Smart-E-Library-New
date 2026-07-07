@@ -196,6 +196,7 @@
                     <div><h2 class="section-title">Add New Officer</h2></div>
                 </div>
                 <div class="add-officer-panel">
+                    <div class="add-officer-card"></div>
                 <div class="field-grid">
                     <div class="field-item"><input type="text" id="add-officer-fname" placeholder="First Name"></div>
                     <div class="field-item"><input type="text" id="add-officer-lname" placeholder="Last Name"></div>
@@ -203,9 +204,8 @@
                     <div class="field-item"><input type="text" id="add-officer-id" placeholder="Assign Work ID (e.g. LIB-001)"></div>
                     <div class="field-item field-full"><input type="password" id="add-officer-password" placeholder="Temporary Password"></div>
                 </div>
-<button type="button" class="btn-save panel-button" onclick="createNewOfficer()">+ Create Account</button>
-                        <button type="button" class="btn-save panel-button">+ Create Account</button>
-                    </div>
+                    <button type="button" class="btn-save panel-button" onclick="createNewOfficer()">+ Create Account</button>
+                        
                 </div>
 
                 <div class="directory-panel">
@@ -213,25 +213,19 @@
                         <div><h3>Active Officers Directory</h3></div>
                     </div>
                     <div class="table-card">
-                        <table class="styled-table">
-                        <tbody id="active-officers-directory-body"></tbody>
-                                <tr>
-                                    <th>Work ID</th>
-                                    <th>Full Name</th>
-                                    <th>Email</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>LIB-001</td>
-                                    <td>Chamod Madushanka</td>
-                                    <td>chamod@library.com</td>
-                                    <td><span class="status-badge active">Active</span></td>
-                                    <td><button class="btn-secondary" onclick="openPasswordModal('LIB-001', 'Chamod Madushanka')">Edit</button></td>
-                                </tr>
-                            </tbody>
+                    <table class="styled-table">
+                    <thead>
+                <tr>
+                    <th>Work ID</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+    </thead>
+    <tbody id="active-officers-directory-body">
+    </tbody>
+</table>                   </tbody>
                         </table>
                     </div>
                 </div>
@@ -684,6 +678,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=2"></script>
+    <script src="js/app.js?v=5"></script>
 </body>
 </html>

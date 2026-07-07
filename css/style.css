@@ -1,0 +1,146 @@
+/* ========================================= */
+/* 1. GLOBAL & TEAL/SLATE THEME              */
+/* ========================================= */
+:root {
+    --bg-slate: #2E363F; 
+    --bg-slate-dark: #222831; 
+    --bg-light: #F4F6F8; 
+    --accent-teal: #4CB5A5; 
+    --text-dark: #333333;
+    --text-light: #FFFFFF;
+}
+
+body { 
+    margin: 0; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+}
+
+/* ========================================= */
+/* 2. LANDING PAGE (HERO) STYLES             */
+/* ========================================= */
+.top-bar { 
+    background-color: var(--bg-slate); 
+    padding: 15px 30px; 
+    display: flex; 
+    justify-content: flex-end; 
+    align-items: center; 
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+    box-sizing: border-box;
+}
+
+.top-bar a { 
+    color: var(--text-light); 
+    text-decoration: none; 
+    margin: 0 10px; 
+    font-weight: 600; 
+    font-size: 15px; 
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: 0.3s;
+}
+
+.top-bar a:hover { color: var(--accent-teal); }
+.divider { color: #64748B; margin: 0 10px; font-size: 18px; }
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.1);
+}
+.btn:hover { background: var(--accent-teal); color: white !important; }
+
+/* Hero Section with student2.jpg */
+.hero { 
+    background-image: linear-gradient(rgba(46, 54, 63, 0.7), rgba(34, 40, 49, 0.8)), url('../static/student2.jpg'); 
+    background-size: cover; 
+    background-position: center;
+    height: 100vh; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+}
+
+.hero h1 { 
+    color: var(--text-light); 
+    font-size: 70px; 
+    margin: 0; 
+    text-shadow: 2px 2px 15px rgba(0,0,0,0.5); 
+    text-align: center; 
+    font-family: 'Roboto Slab', serif; 
+    letter-spacing: 2px; 
+    line-height: 1.2; 
+}
+.welcome-text { 
+    font-family: 'Dancing Script', cursive; 
+    font-size: 80px; 
+    color: var(--accent-teal); 
+    font-weight: normal; 
+}
+
+/* ========================================= */
+/* 3. LOGIN & FORGOT PASSWORD PAGE STYLES    */
+/* ========================================= */
+.login-wrapper { 
+    min-height: 100vh; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    /* Login background with student3.jpg */
+    background-image: linear-gradient(rgba(244, 246, 248, 0.85), rgba(244, 246, 248, 0.95)), url('../static/student3.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+.login-box { 
+    background-color: #FFFFFF; 
+    padding: 40px 30px; 
+    border-radius: 12px; 
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); 
+    text-align: center; 
+    width: 400px; 
+    max-width: 90%; 
+    border-top: 5px solid var(--accent-teal);
+}
+
+.login-box h2 { color: var(--bg-slate); margin-bottom: 25px; font-size: 24px;}
+
+.login-box input { 
+    width: 100%; 
+    padding: 14px; 
+    margin-bottom: 20px; 
+    border: 1px solid #E2E8F0; 
+    background: #F8FAFC;
+    border-radius: 6px; 
+    font-size: 15px; 
+    box-sizing: border-box; 
+    transition: 0.3s;
+}
+.login-box input:focus { outline: none; border-color: var(--accent-teal); background: #fff;}
+
+.login-btn { 
+    width: 100%; 
+    padding: 14px; 
+    background-color: var(--accent-teal); 
+    border: none; 
+    border-radius: 6px; 
+    color: white; 
+    font-weight: bold; 
+    font-size: 16px; 
+    cursor: pointer; 
+    transition: 0.3s;
+}
+.login-btn:hover { background-color: #3ba391; box-shadow: 0 4px 10px rgba(76, 181, 165, 0.3);}
+
+.forgot-password { text-align: right; margin-bottom: 20px; margin-top: -10px;}
+.forgot-password a { color: var(--accent-teal); font-size: 13px; text-decoration: none; font-weight: bold;}
+.forgot-password a:hover { text-decoration: underline; }
+
+.register-link { margin-top: 25px; font-size: 14px; color: #64748B;}
+.register-link a { color: var(--bg-slate); font-weight: bold; text-decoration: none;}
+.register-link a:hover { color: var(--accent-teal); }

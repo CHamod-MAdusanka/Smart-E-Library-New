@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Head-Admin Dashboard</title>
+    
+    <link rel="stylesheet" href="css/admin-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Roboto+Slab:wght@900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="header-left">
+            <button id="menu-btn" class="menu-toggle-btn">☰</button>
+            <span class="system-name">Smart E-Library</span>
+        </div>
+        
+        <div class="header-center">
+            <div class="search-box">
+                <input id="global-search" type="text" placeholder="Search...">
+                <span class="search-icon">🔍</span>
+            </div>
+        </div> 
+        
+        <div class="header-right">
+            <div class="dropdown">
+                <button class="icon-btn" id="bell-btn" onclick="toggleDropdown('notification-dropdown')">🔔<span class="badge">1</span></button>
+                <div id="notification-dropdown" class="dropdown-content notif-dropdown">
+                    <div class="notif-item" onclick="showSection('approve-registrations')">
+                        <strong>New Registration!</strong>
+                        <p>A new student is waiting for identity verification.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dropdown">
+                <button class="profile-btn" onclick="toggleDropdown('profile-dropdown')"> 
+                    <img id="header-profile-img" src="static/chamod.png" alt="Profile" class="profile-img">
+                    <span id="header-profile-name">Chamod Perera</span>
+                </button>               
+                <div id="profile-dropdown" class="dropdown-content">
+                    <a href="#" onclick="showSection('settings'); toggleDropdown('profile-dropdown'); return false;">Profile</a>
+                    <a href="index.html">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-container">        
+        <div id="sidebar" class="sidebar">
+            <h2>Head Panel</h2>
+            <ul class="sidebar-menu">
+                <li class="menu-item home-item" onclick="showSection('home')">
+                    <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 10.5L12 4l9 6.5"></path>
+                        <path d="M9 21.5V12h6v9.5"></path>
+                        <path d="M21 10.5v10.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10.5"></path>
+                    </svg>
+                    Home
+                </li>
+
+                <li class="menu-item">Book Circulation ▾
+                    <ul class="submenu">
+                        <li onclick="showSection('issue-book')"> Issue Book</li>
+                        <li onclick="showSection('active-borrowings')"> Active Borrowings</li>
+                    </ul>
+                </li>
+
+                <li class="menu-item">Manage Staff ▾
+                    <ul class="submenu">
+                        <li onclick="showSection('view-officers')"> View Officers</li>
+                        <li onclick="showSection('add-officer')"> Add Officer </li>
+                        <li onclick="showSection('remove-officer')"> Remove Officer</li>
+                    </ul>
+                </li>
+                <li class="menu-item">Manage Students ▾
+                    <ul class="submenu">
+                        <li onclick="showSection('view-members')"> View All Students</li>
+                        <li onclick="showSection('approve-registrations')"> Approve New Registrations</li>
+                        <li onclick="showSection('remove-member')"> Remove Student </li>
+                    </ul>
+                </li>
+                <li class="menu-item">Write RFID ▾
+                    <ul class="submenu">
+                        <li onclick="showSection('student-rfid')"> Student RFID</li>
+                        <li onclick="showSection('books-rfid')"> Book RFID</li>
+                        <li onclick="showSection('rack-rfid')"> Rack RFID</li>
+                    </ul>
+                </li>
+                <li class="menu-item">Manage Books ▾
+                    <ul class="submenu">
+                        <li onclick="showSection('add-book')"> Add New Book</li>
+                        <li onclick="showSection('remove-book')"> Remove Book</li>
+                    </ul>
+                </li>
+                <li class="menu-item" onclick="showSection('book-reservations')">Book Reservations</li>
+                <li class="menu-item" onclick="showSection('return-books')">Returns Books</li>
+                <li class="menu-item settings-item" onclick="showSection('settings')">⚙️ Settings</li>
+            </ul>
+        </div>
+        
+        <div class="main-content" id="main-display-area">            
+            
+            <div id="home" class="dynamic-section section-visible">
+                <div class="dashboard-cards">
+                    <div class="card">Total Members: 1,250</div>
+                    <div class="card">Active Officers: 12</div>
+                    <div class="card">Pending Approvals: 24</div>
+                    <div class="card">Total Books: 8,430</div>
+                </div>
+                
+                <div class="pro-banner">
+                    <div class="pro-banner-text">
+                        <h3>System Status: Online</h3>
+                        <p>All library services, RFID scanners, and IoT modules are currently running smoothly.</p>
+                    </div>
+                    <div class="pro-banner-graphic">
+                        <div style="font-size: 60px; opacity: 0.9;">📈</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="issue-book" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Issue Book (Manual)</h2>
+                        <p>Scan student RFID and Book RFID to officially issue a book.</p>
+                    </div>
+                </div>
+                <div class="add-officer-panel">
+                    <div class="add-officer-card">
+                        <div class="field-grid">
+                            <div class="field-item">
+                                <label>Student ID / Scan RFID</label>
+                                <input id="issue-student-id" type="text" placeholder="e.g. STU-001">
+                            </div>
+                            <div class="field-item">
+                                <label>Book ID / Scan RFID</label>
+                                <input id="issue-book-id" type="text" placeholder="e.g. nov01-r1">
+                            </div>
+                        </div>
+                        <button class="btn-save panel-button" style="background:#10b981; max-width:200px;" onclick="issueNewBook()">📚 Issue Book</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="active-borrowings" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Active Borrowings</h2>
+                        <p>Track all issued books, return countdowns, and calculate overdue fines dynamically.</p>
+                    </div>
+                </div>
+                <div class="directory-panel">
+                    <div class="table-card">
+                        <table class="styled-table" id="borrowings-table">
+                            <thead>
+                                <tr>
+                                    <th>Book Title</th>
+                                    <th>Book ID</th>
+                                    <th>Student Name</th>
+                                    <th>Days Left</th>
+                                    <th>Overdue Days</th>
+                                    <th>Fine (LKR)</th>
+                                    <th>Phone</th>
+                                </tr>
+                            </thead>
+                            <tbody id="borrowings-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="view-officers" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div><h2 class="section-title">View All Officers</h2></div>
+                </div>
+                <div class="add-officer-panel">
+                    <div class="add-officer-card">
+                        <div class="table-card">
+                            <table class="styled-table">
+                                <thead>
+                                    <tr><th>Work ID</th><th>Full Name</th><th>Email</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>EMP001</td><td>Chamod Perera</td><td>chamod@elibrary.com</td></tr>
+                                    <tr><td>EMP002</td><td>Nimali Silva</td><td>nimali@elibrary.com</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="add-officer" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div><h2 class="section-title">Add New Officer</h2></div>
+                </div>
+                <div class="add-officer-panel">
+                    <div class="add-officer-card">
+                        <div class="field-grid">
+                            <div class="field-item"><input type="text" placeholder="First Name"></div>
+                            <div class="field-item"><input type="text" placeholder="Last Name"></div>
+                            <div class="field-item"><input type="email" placeholder="Email Address"></div>
+                            <div class="field-item"><input type="text" placeholder="Assign Work ID (e.g. LIB-001)"></div>
+                            <div class="field-item field-full"><input type="password" placeholder="Temporary Password"></div>
+                        </div>
+                        <button type="button" class="btn-save panel-button">+ Create Account</button>
+                    </div>
+                </div>
+
+                <div class="directory-panel">
+                    <div class="section-header">
+                        <div><h3>Active Officers Directory</h3></div>
+                    </div>
+                    <div class="table-card">
+                        <table class="styled-table">
+                            <thead>
+                                <tr>
+                                    <th>Work ID</th>
+                                    <th>Full Name</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>LIB-001</td>
+                                    <td>Chamod Madushanka</td>
+                                    <td>chamod@library.com</td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td><button class="btn-secondary" onclick="openPasswordModal('LIB-001', 'Chamod Madushanka')">Edit</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="remove-officer" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div><h2 class="section-title">Remove Officer</h2></div>
+                </div>
+                <div class="add-officer-panel">
+                    <div class="add-officer-card">
+                        <div class="table-card">
+                            <table class="styled-table">
+                                <thead>
+                                    <tr><th>Work ID</th><th>Full Name</th><th>Email</th><th>Action</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>EMP001</td><td>Chamod Perera</td><td>chamod@elibrary.com</td><td><button class="btn-danger" onclick="openDeleteModal()">Remove</button></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-members" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div><h2 class="section-title">View All Students</h2></div>
+                </div>
+                <div class="add-officer-panel">
+                    <div class="add-officer-card">
+                        <div class="table-card">
+                            <table class="styled-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Full Name</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><div class="student-profile"><img src="static/chamod.png" alt="Student" class="student-avatar"/><span class="student-id">STU001</span></div></td>
+                                        <td>Saman Perera</td>
+                                        <td>saman@elibrary.com</td>
+                                        <td><span class="status-badge active">Active</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><div class="student-profile"><img src="static/chamod.png" alt="Student" class="student-avatar"/><span class="student-id">STU002</span></div></td>
+                                        <td>Kumari Fernando</td>
+                                        <td>kumari@elibrary.com</td>
+                                        <td><span class="status-badge">Inactive</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="approve-registrations" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div><h2 class="section-title">Approve New Registrations</h2></div>
+                </div>
+                <div class="add-officer-panel">
+                    <div class="add-officer-card">
+                        <div class="table-card">
+                            <table class="styled-table">
+                                <thead>
+                                    <tr>
+                                        <th>Full Name</th>
+                                        <th>Email Address</th>
+                                        <th>Verification Document</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Nimal Perera</td>
+                                        <td>nimal@student.com</td>
+                                        <td><button class="btn-proof">View ID / Proof</button></td>
+                                        <td>
+                                            <button class="btn-approve">✔ Approve</button>
+                                            <button class="btn-danger">✖ Reject</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="remove-member" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div><h2 class="section-title">Remove Student</h2></div>
+                </div>
+                <div class="add-officer-panel">
+                    <div class="add-officer-card">
+                        <div class="table-card">
+                            <table class="styled-table">
+                                <thead>
+                                    <tr><th>Student</th><th>Full Name</th><th>Email</th><th>Action</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><div class="student-profile"><img src="static/chamod.png" alt="Student" class="student-avatar"/><span class="student-id">STU001</span></div></td>
+                                        <td>Saman Perera</td>
+                                        <td>saman@elibrary.com</td>
+                                        <td><button class="btn-danger" onclick="openDeleteModal()">Remove</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="student-rfid" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Student RFID Assignment</h2>
+                        <p>Link physical RFID smart cards to registered students.</p>
+                    </div>
+                </div>
+                <div class="directory-panel">
+                    <div class="table-card">
+                        <table class="styled-table">
+                            <thead>
+                                <tr><th>Student Name</th><th>Student ID</th><th>Action</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Saman Perera</td>
+                                    <td>STU-001</td>
+                                    <td><button class="btn-save" onclick="openRfidModal('STU-001', 'Saman Perera', 'Student')">Write RFID</button></td>
+                                </tr>
+                                <tr>
+                                    <td>Kumari Fernando</td>
+                                    <td>STU-002</td>
+                                    <td><button class="btn-save" onclick="openRfidModal('STU-002', 'Kumari Fernando', 'Student')">Write RFID</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="books-rfid" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Book RFID Assignment</h2>
+                        <p>Link RFID tracking tags to library inventory books.</p>
+                    </div>
+                </div>
+                <div class="add-officer-panel">
+                    <div class="table-card">
+                        <table class="styled-table">
+                            <thead>
+                                <tr><th>Book Title</th><th>Book ID</th><th>Action</th></tr>
+                            </thead>
+                            <tbody id="books-rfid-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="rack-rfid" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Rack RFID Assignment</h2>
+                        <p>Register library racks and assign unique RFID tags for misplacement detection.</p>
+                    </div>
+                </div>
+                <div class="add-officer-panel">
+                    <div class="add-officer-card">
+                        <div class="field-grid">
+                            <div class="field-item">
+                                <label>Rack Name / Category Description</label>
+                                <input id="rack-name-input" type="text" placeholder="e.g. Science Section - Rack 01">
+                            </div>
+                        </div>
+                        <button class="btn-save panel-button" onclick="addNewRack()">+ Add Rack</button>
+                    </div>
+                </div>
+                <div class="directory-panel">
+                    <div class="table-card">
+                        <table class="styled-table" id="racks-table">
+                            <thead>
+                                <tr><th>Rack ID</th><th>Rack Name</th><th>RFID Tag UID</th><th>Action</th></tr>
+                            </thead>
+                            <tbody id="racks-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="add-book" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div><h2 class="section-title">Add New Book</h2></div>
+                </div>
+                <div class="add-officer-panel">
+                    <div class="add-officer-card">
+                        <div class="field-grid">
+                            <div class="field-item">
+                                <label>Book Title</label>
+                                <input id="book-title" type="text" placeholder="Enter book title">
+                            </div>
+                            <div class="field-item">
+                                <label>Author</label>
+                                <input id="book-author" type="text" placeholder="Enter author name">
+                            </div>
+                            <div class="field-item">
+                                <label>Category</label>
+                                <select id="book-category">
+                                    <option value="">Select category</option>
+                                    <option value="novel">Novel</option>
+                                    <option value="science">Science</option>
+                                    <option value="history">History</option>
+                                    <option value="education">Education</option>
+                                </select>
+                            </div>
+                            <div class="field-item">
+                                <label>Rack Number</label>
+                                <input id="book-rack" type="text" placeholder="e.g. r1">
+                            </div>
+                            <div class="field-item">
+                                <label>Book Cover Image</label>
+                                <input id="book-cover" type="file" accept="image/*">
+                            </div>
+                            <div class="field-item field-full">
+                                <label>Book ID</label>
+                                <input id="book-id" type="text" readonly placeholder="Automatically generated">
+                            </div>
+                            <div class="field-item field-full">
+                                <button id="book-add-button" type="button" class="btn-save panel-button">+ Add Book</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="directory-panel">
+                    <div class="section-header">
+                        <div><h3>Book Inventory</h3></div>
+                    </div>
+                    <div class="table-card">
+                        <table class="styled-table" id="book-inventory-table">
+                            <thead>
+                                <tr><th>Cover</th><th>Book ID</th><th>Title</th><th>Author</th><th>Category</th><th>Rack</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="remove-book" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div><h2 class="section-title">Remove Book</h2></div>
+                </div>
+                <div class="directory-panel">
+                    <div class="filter-bar">
+                        <select id="remove-book-category" class="filter-select">
+                            <option value="all">All Categories</option>
+                            <option value="novel">Novel</option>
+                            <option value="science">Science</option>
+                            <option value="history">History</option>
+                            <option value="education">Education</option>
+                        </select>
+                    </div>
+                    <div class="table-card">
+                        <table class="styled-table" id="remove-book-table">
+                            <thead>
+                                <tr><th>Cover</th><th>Book ID</th><th>Book Title</th><th>Author</th><th>Action</th></tr>
+                            </thead>
+                            <tbody id="remove-book-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="book-reservations" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div><h2 class="section-title">Book Reservations</h2></div>
+                </div>
+                <div class="add-officer-panel">
+                    <div class="add-officer-card">
+                        <div class="table-card">
+                            <table class="styled-table">
+                                <thead>
+                                    <tr><th>Student Name</th><th>Book Title</th><th>Reserved Date</th><th>Status</th><th>Action</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Saman Perera <br><small style="color: #64748b; font-weight: bold;">STU-001</small></td>
+                                        <td>Madol Doova</td>
+                                        <td>2024-10-25</td>
+                                        <td><span class="status-badge" style="background: #fef08a; color: #854d0e;">Pending</span></td>
+                                        <td>
+                                            <button class="btn-approve">✔ Approve</button>
+                                            <button class="btn-danger">✖ Cancel</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="return-books" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Returns Books</h2>
+                        <p>Track returned books (IoT Pending) and physically confirm them. Overdue fines are calculated dynamically.</p>
+                    </div>
+                </div>
+                <div class="directory-panel">
+                    <div class="table-card">
+                        <table class="styled-table" id="returns-table">
+                            <thead>
+                                <tr>
+                                    <th>Student Details</th>
+                                    <th>Book Details</th>
+                                    <th>Return Dropped Date</th>
+                                    <th>Fine Status</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="returns-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div><h2 class="section-title">System Settings & Profile</h2></div>
+                </div>
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <h3>My Profile Settings</h3>
+                        
+                        <div style="text-align: center; margin-top: 15px; margin-bottom: 25px;">
+                            <img id="settings-profile-preview" src="static/chamod.png" alt="Profile Preview" style="width: 110px; height: 110px; border-radius: 50%; border: 4px solid #3b82f6; object-fit: cover; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                            <h4 style="margin: 12px 0 0 0; color: #0f172a; font-size: 16px; font-weight: 700;">System ID: <span id="settings-profile-id" style="color: #64748b; font-weight: normal;">HEAD001</span></h4>
+                        </div>
+
+                        <div class="form-style" style="margin-top: 15px;">
+                            <div style="margin-bottom: 12px;">
+                                <label style="font-weight:bold; display:block; margin-bottom:5px;">Change Full Name</label>
+                                <input type="text" id="profile-name-input" class="filter-input" style="max-width:100%; width:90%;" value="Chamod Perera">
+                            </div>
+                            <div style="margin-bottom: 12px;">
+                                <label style="font-weight:bold; display:block; margin-bottom:5px;">Email Address</label>
+                                <input type="email" id="profile-email-input" class="filter-input" style="max-width:100%; width:90%;" value="admin@elibrary.com">
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <label style="font-weight:bold; display:block; margin-bottom:5px;">Update Profile Avatar</label>
+                                <input type="file" id="profile-img-input" accept="image/*">
+                            </div>
+                            <button class="btn-save" onclick="openProfileAuthModal()">Update Profile</button>
+                            
+                            <hr style="border:0; border-top:1px solid #e2e8f0; margin: 25px 0 20px 0;">
+                            
+                            <div id="pw-step-0">
+                                <button onclick="startPasswordChange()" style="background: #1e293b; color: #cbd5e1; border: none; padding: 14px 20px; border-radius: 8px; width: 100%; text-align: left; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.3s; font-family: inherit; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onmouseover="this.style.background='#334155'; this.style.color='white'" onmouseout="this.style.background='#1e293b'; this.style.color='#cbd5e1'">
+                                    <span style="font-size: 18px;">🔑</span> Change Security Password
+                                </button>
+                            </div>
+
+                            <div id="pw-step-1" style="display: none; background: #f8fafc; padding: 18px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 10px;">
+                                <label style="font-weight:bold; display:block; margin-bottom:8px; color: #0f172a;">Step 1: Enter Current Password</label>
+                                <input type="password" id="pw-current" class="filter-input" style="max-width:100%; width:100%; margin-bottom: 10px; box-sizing: border-box;" placeholder="Type your active password">
+                                <div style="text-align: right; width: 100%; margin-bottom: 15px;">
+                                    <a href="forgot-password.html" style="color: #3b82f6; font-size: 13px; text-decoration: none; font-weight: 700;">Forgot Password?</a>
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn-save" style="background: #3b82f6; width: 50%; padding: 10px;" onclick="verifyCurrentPassword()">Next</button>
+                                    <button class="btn-cancel" style="width: 50%; padding: 10px;" onclick="cancelPasswordChange()">Cancel</button>
+                                </div>
+                            </div>
+
+                            <div id="pw-step-2" style="display: none; background: #f8fafc; padding: 18px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 10px;">
+                                <label style="font-weight:bold; display:block; margin-bottom:8px; color: #0f172a;">Step 2: Enter New Password</label>
+                                <input type="password" id="pw-new" class="filter-input" style="max-width:100%; width:100%; margin-bottom: 12px; box-sizing: border-box;" placeholder="Create new password">
+                                <label style="font-weight:bold; display:block; margin-bottom:8px; color: #0f172a;">Confirm New Password</label>
+                                <input type="password" id="pw-confirm" class="filter-input" style="max-width:100%; width:100%; margin-bottom: 20px; box-sizing: border-box;" placeholder="Retype new password">
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn-save" style="background: #10b981; width: 50%; padding: 10px;" onclick="confirmUpdatePassword()">Confirm</button>
+                                    <button class="btn-cancel" style="width: 50%; padding: 10px;" onclick="cancelPasswordChange()">Cancel</button>
+                                </div>
+                            </div>
+                            </div>
+                    </div>
+
+                    <div class="settings-card">
+                        <h3>Library Preferences</h3>
+                        <div class="form-style" style="margin-top: 15px;">
+                            <div style="margin-bottom: 12px;">
+                                <label style="font-weight:bold; display:block; margin-bottom:5px;">Borrowing Period (Days)</label>
+                                <input type="number" id="pref-days" class="filter-input" style="max-width:100%; width:90%;" value="14" onchange="renderBorrowings(); renderReturns();">
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <label style="font-weight:bold; display:block; margin-bottom:5px;">Late Fine Amount (Per Day - LKR)</label>
+                                <input type="number" id="pref-fine" class="filter-input" style="max-width:100%; width:90%;" value="20" onchange="renderBorrowings(); renderReturns();">
+                            </div>
+                            <button class="btn-save" onclick="alert('Library preferences updated successfully!')">Save Preferences</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-card">
+                        <h3>Data Backup</h3>
+                        <p style="color:#64748b; font-size:14px; margin-bottom:15px;">Download all localized books, students, and system data instantly.</p>
+                        <button class="btn-approve" onclick="downloadDatabaseBackup()">📥 Download Database Backup</button>
+                    </div>
+
+                    <div class="settings-card danger-zone-card">
+                        <h3 style="color:#ef4444;">Danger Zone</h3>
+                        <p style="font-size:14px; color:#475569; margin-bottom:12px;">To delete your head account, transfer ownership rights first.</p>
+                        <div style="margin-bottom: 15px;">
+                            <select id="transfer-officer-select" class="filter-select" style="width:100%;">
+                                <option value="">-- Choose Active Officer --</option>
+                                <option value="Chamod Madushanka (LIB-001)">Chamod Madushanka (LIB-001)</option>
+                                <option value="Nimali Silva (EMP002)">Nimali Silva (EMP002)</option>
+                            </select>
+                        </div>
+                        <div class="modal-actions" style="justify-content: flex-start; gap: 10px;">
+                            <button class="btn-secondary" onclick="executeOwnershipTransfer()">Transfer Ownership</button>
+                            <button class="btn-danger" id="btn-delete-account" onclick="executeAccountDeletion()" style="opacity:0.5;">Delete Account</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="delete-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Are you sure?</h3>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn-save btn-danger" onclick="closeDeleteModal()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="password-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Change Temporary Password</h3>
+            <input id="password-modal-input" class="modal-input" type="password" placeholder="New Temporary Password">
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closePasswordModal()">Cancel</button>
+                <button class="btn-save" onclick="confirmPasswordChange()">Confirm</button>
+            </div>
+        </div>
+    </div>          
+
+    <div id="rfid-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <div style="font-size: 50px; animation: pulse 1.5s infinite;">📇</div>
+            <h3 id="rfid-modal-title">Assign RFID</h3>
+            <p id="rfid-modal-text" style="font-size: 13px; color: #64748b;">Please tap the card on the scanner reader module.</p>
+            
+            <input type="text" id="rfid-scanner-input" class="modal-input" placeholder="Waiting for scanner input..." style="text-align:center; font-weight:bold; letter-spacing:2px;" autofocus>
+            
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeRfidModal()">Cancel</button>
+                <button class="btn-save" style="background:#10b981;" onclick="saveRfidData()">Link RFID</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="profile-auth-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Security Verification</h3>
+            <p>Enter current password to save profile adjustments.</p>
+            <input id="profile-auth-password" class="modal-input" type="password" placeholder="Current Password">
+            <p id="profile-auth-error" style="color: #ef4444; font-size: 12px; margin-top: 8px; display: none; font-weight: bold;">Incorrect password! Try again.</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeProfileAuthModal()">Cancel</button>
+                <button class="btn-save" style="background: #10b981;" onclick="confirmProfileAuth()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pw-success-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 320px; text-align: center; border-radius: 16px; padding: 30px;">
+            <div style="font-size: 50px; margin-bottom: 15px;">✅</div>
+            <h3 style="margin-top: 0; color: #0f172a; font-size: 20px;">Password Changed!</h3>
+            <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Your credentials have been successfully updated.</p>
+            <button class="btn-save" style="background: #10b981; width: 100%; margin-top: 0;" onclick="closePwSuccess()">OK</button>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

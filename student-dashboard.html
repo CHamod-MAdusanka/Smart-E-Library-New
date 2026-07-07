@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Smart E-Library</title>
+    <link rel="stylesheet" href="css/student-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@900&family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="dashboard-header">
+        <div class="header-left">
+            <button id="menu-btn" class="menu-toggle-btn">☰</button>
+            <span class="system-name">PUBLIC LIBRARY</span>
+        </div>
+        
+        <div class="header-center">
+            <div class="search-box">
+                <input id="global-search" type="text" placeholder="Search books, authors, categories...">
+                <span class="search-icon">🔍</span>
+            </div>
+        </div> 
+        
+        <div class="header-right">
+            <div class="dropdown">
+                <button class="profile-btn" onclick="toggleDropdown('profile-dropdown')"> 
+                    <img id="header-profile-img" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Profile" class="profile-img">
+                    <span id="header-profile-name">Saman Perera</span>
+                </button>               
+                <div id="profile-dropdown" class="dropdown-content">
+                    <a href="#" onclick="showSection('settings'); toggleDropdown('profile-dropdown'); return false;">My Profile</a>
+                    <a href="index.html">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-container">        
+        
+        <div id="sidebar" class="sidebar">
+            <ul class="sidebar-menu">
+                <li class="menu-item home-item active" onclick="showSection('home')">
+                    <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; margin-right: 10px; vertical-align: middle;">
+                        <path d="M3 10.5L12 4l9 6.5"></path>
+                        <path d="M9 21.5V12h6v9.5"></path>
+                        <path d="M21 10.5v10.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10.5"></path>
+                    </svg>
+                    HOME
+                </li>
+                <li class="menu-item" onclick="showSection('browse-books')">CATALOG & RESERVE</li>
+                <li class="menu-item" onclick="showSection('my-borrowings')">MY BORROWINGS</li>
+                <li class="menu-item" onclick="showSection('my-reservations')">MY RESERVATIONS</li>
+                <li class="menu-item settings-item" onclick="showSection('settings')">SETTINGS</li>
+            </ul>
+        </div>
+        
+        <div class="main-content" id="main-display-area">            
+            
+            <div id="home" class="dynamic-section section-visible">
+                <div class="library-hero-full">
+                    <img src="static/student.jpg" alt="Welcome to Library" class="hero-bg-img">
+                    
+                    <div class="overlay-stats-grid">
+                        
+                        <div class="stat-card border-blue glass-card">
+                            <h4>📚 Borrowed This Week</h4>
+                            <div class="stat-books-list" id="student-borrowed-list">
+                                <p>Loading...</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card border-green glass-card">
+                            <h4>⏳ Time Left to Return</h4>
+                            <div id="return-timer" class="live-timer">Loading...</div>
+                        </div>
+
+                        <div class="stat-card border-red glass-card">
+                            <h4>⚠️ Overdue & Fines</h4>
+                            <p style="margin-top: 10px; color: var(--bg-slate); font-weight: bold;">Overdue Days: <strong id="student-overdue-days" style="color: #ef4444; font-size: 16px;">0 Days</strong></p>
+                            <h3 class="fine-amount" id="student-total-fine">Rs. 0.00</h3>
+                        </div>
+
+                    </div>
+
+                    <div class="hero-teal-bar"></div>
+                </div>
+            </div>
+
+            <div id="browse-books" class="dynamic-section section-hidden">
+                <div class="browse-header-wrapper" style="margin-top: 20px;">
+                    <div class="section-header" style="margin-bottom: 0;">
+                        <h2 class="section-title">Catalog & Reserve Books</h2>
+                        <p>Explore library catalogue and reserve your next read instantly.</p>
+                    </div>
+                    <div class="search-bar-container" style="margin-top: 15px; margin-bottom: 20px; text-align: center;">
+                        <input type="text" id="catalog-search" placeholder="Search by title, author, or category..." style="width: 80%; padding: 12px 20px; border-radius: 25px; border: 1px solid #cbd5e1; font-size: 16px; outline: none; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                    </div>
+                    <div class="category-filter-container">
+                        <button class="cat-btn active" data-filter="all">All</button>
+                        <button class="cat-btn" data-filter="cyber security">Cyber Security</button>
+                        <button class="cat-btn" data-filter="ict">ICT</button>
+                        <button class="cat-btn" data-filter="english">English</button>
+                        <button class="cat-btn" data-filter="sinhala">Sinhala</button>
+                        <button class="cat-btn" data-filter="novel">Novel</button>
+                        <button class="cat-btn" data-filter="science">Science</button>
+                        <button class="cat-btn" data-filter="history">History</button>
+                    </div>
+                </div>
+                
+                <div class="books-grid" id="student-books-grid">
+                    <!-- Books will be loaded here dynamically -->
+                </div>
+            </div>
+
+            <div id="my-borrowings" class="dynamic-section section-hidden">
+                <div class="section-header" style="margin-top: 20px;">
+                    <h2 class="section-title">My Borrowed Books</h2>
+                    <p>Track your active library books and countdowns to avoid late fines.</p>
+                </div>
+                <div class="table-card">
+                    <table class="styled-table">
+                        <thead>
+                            <tr>
+                                <th>Book Title</th>
+                                <th>Book ID</th>
+                                <th>Issued Date</th>
+                                <th>Days Left</th>
+                                <th>Accumulated Fine</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-active-borrowings">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="my-reservations" class="dynamic-section section-hidden">
+                <div class="section-header" style="margin-top: 20px;">
+                    <h2 class="section-title">My Book Reservations</h2>
+                    <p>Check the status of your online book reservations before visiting the library.</p>
+                </div>
+                <div class="table-card">
+                    <table class="styled-table">
+                        <thead>
+                            <tr>
+                                <th>Book Title</th>
+                                <th>Reserved Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-reservations-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="settings" class="dynamic-section section-hidden">
+                <div class="section-header" style="margin-top: 20px; text-align: center;">
+                    <h2 class="section-title">Profile & Security Settings</h2>
+                </div>
+                
+                <div class="settings-grid" style="display: flex; justify-content: center; margin-top: 20px;">
+                    <div class="settings-card" style="width: 100%; max-width: 500px; position: relative;">
+                        <h3 style="text-align: center; color: var(--bg-slate);">My Profile</h3>
+                        
+                        <div style="text-align: center; margin-top: 15px; margin-bottom: 25px;">
+                            <div class="profile-picture-wrapper" id="profile-picture-container" onclick="triggerProfilePictureUpload()">
+                                <img id="settings-profile-preview" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Profile Preview" class="settings-avatar-img">
+                                <div class="picture-edit-overlay">
+                                    <span class="edit-icon">✏️</span>
+                                </div>
+                            </div>
+                            <input type="file" id="profile-upload-input" style="display: none;" accept="image/*">
+                            <h4 style="margin: 12px 0 0 0; color: var(--bg-slate); font-size: 16px; font-weight: 700;">Student ID: <span id="settings-profile-id" style="color: #64748b; font-weight: normal;">STU-001</span></h4>
+                        </div>
+
+                        <div id="profile-view-state">
+                            <div class="info-row">
+                                <span class="info-label">Full Name:</span>
+                                <strong id="disp-name" class="info-value">Saman Perera</strong>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Email Address:</span>
+                                <strong id="disp-email" class="info-value">saman@elibrary.com</strong>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Phone Number:</span>
+                                <strong id="disp-phone" class="info-value">071 234 5678</strong>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Date of Birth:</span>
+                                <strong id="disp-dob" class="info-value">2001-05-14</strong>
+                            </div>
+                            
+                            <button class="btn-action btn-reserve" style="width: 100%; padding: 12px; margin-top: 20px; font-size: 15px;" onclick="showProfileEdit()">Update Profile</button>
+                            
+                            <hr style="border:0; border-top:1px solid #E2E8F0; margin: 25px 0 20px 0;">
+                            
+                            <div id="pw-step-0">
+                                <button onclick="startPasswordChange()" style="background: var(--bg-slate); color: var(--text-light); border: none; padding: 14px 20px; border-radius: 8px; width: 100%; text-align: left; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onmouseover="this.style.background='var(--bg-slate-dark)'" onmouseout="this.style.background='var(--bg-slate)'">
+                                    <span style="font-size: 18px;">🔑</span> Change Security Password
+                                </button>
+                            </div>
+
+                            <div id="pw-step-1" style="display: none; background: #F8FAFC; padding: 18px; border-radius: 8px; border: 1px solid #E2E8F0; margin-top: 10px;">
+                                <label style="font-weight:bold; display:block; margin-bottom:8px; color: var(--bg-slate);">Step 1: Enter Current Password</label>
+                                <input type="password" id="pw-current" class="light-input" style="margin-bottom: 5px;" placeholder="Type your active password">
+                                <a href="#" style="font-size: 12px; color: var(--accent-teal); text-decoration: none; font-weight: 600; display: inline-block; margin-bottom: 15px;">Forgot Password?</a>
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn-action btn-reserve" style="width: 50%; margin: 0; padding: 10px;" onclick="verifyCurrentPassword()">Next</button>
+                                    <button class="btn-action" style="width: 50%; background: #E2E8F0; color: #64748B; margin: 0; padding: 10px;" onclick="cancelPasswordChange()">Cancel</button>
+                                </div>
+                            </div>
+
+                            <div id="pw-step-2" style="display: none; background: #F8FAFC; padding: 18px; border-radius: 8px; border: 1px solid #E2E8F0; margin-top: 10px;">
+                                <label style="font-weight:bold; display:block; margin-bottom:8px; color: var(--bg-slate);">Step 2: Enter New Password</label>
+                                <input type="password" id="pw-new" class="light-input" style="margin-bottom: 12px;" placeholder="Create new password">
+                                <label style="font-weight:bold; display:block; margin-bottom:8px; color: var(--bg-slate);">Confirm New Password</label>
+                                <input type="password" id="pw-confirm" class="light-input" style="margin-bottom: 20px;" placeholder="Retype new password">
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn-action btn-reserve" style="width: 50%; background: #10b981; margin: 0; padding: 10px;" onclick="confirmUpdatePassword()">Confirm</button>
+                                    <button class="btn-action" style="width: 50%; background: #E2E8F0; color: #64748B; margin: 0; padding: 10px;" onclick="cancelPasswordChange()">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="profile-edit-state" style="display: none; background: #F8FAFC; padding: 20px; border-radius: 8px; border: 1px solid #E2E8F0;">
+                            <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--bg-slate); border-bottom: 2px solid var(--accent-teal); padding-bottom: 8px; display: inline-block;">Edit Your Details</h4>
+                            <div class="form-group" style="margin-bottom: 12px;">
+                                <label style="font-weight:bold; display:block; margin-bottom:5px; color: var(--bg-slate); font-size: 13px;">Full Name</label>
+                                <input type="text" id="edit-name" class="light-input">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 12px;">
+                                <label style="font-weight:bold; display:block; margin-bottom:5px; color: var(--bg-slate); font-size: 13px;">Email Address</label>
+                                <input type="email" id="edit-email" class="light-input">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 12px;">
+                                <label style="font-weight:bold; display:block; margin-bottom:5px; color: var(--bg-slate); font-size: 13px;">Phone Number</label>
+                                <input type="text" id="edit-phone" class="light-input">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="font-weight:bold; display:block; margin-bottom:5px; color: var(--bg-slate); font-size: 13px;">Date of Birth</label>
+                                <input type="date" id="edit-dob" class="light-input">
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn-action btn-reserve" style="width: 50%;" onclick="showProfileAuth()">Confirm Update</button>
+                                <button class="btn-action" style="width: 50%; background: #E2E8F0; color: #64748B;" onclick="cancelProfileEdit()">Cancel</button>
+                            </div>
+                        </div>
+
+                        <div id="profile-auth-state" style="display: none; background: #FEF2F2; padding: 20px; border-radius: 8px; border: 1px solid #FCA5A5; margin-top: 10px;">
+                            <h4 style="margin-top: 0; color: #B91C1C;">Authorize Changes</h4>
+                            <p style="font-size: 13px; color: #7F1D1D; margin-bottom: 15px;">Please enter your current password to save these changes.</p>
+                            <input type="password" id="auth-password" class="light-input" placeholder="Current Password" style="margin-bottom: 15px; border-color: #FCA5A5;">
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn-action" style="width: 50%; background: #10B981; color: white;" onclick="saveProfileChanges()">Save Changes</button>
+                                <button class="btn-action" style="width: 50%; background: #E2E8F0; color: #64748B;" onclick="cancelProfileAuth()">Cancel</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="js/student-app.js"></script>
+</body>
+</html>

@@ -983,3 +983,113 @@ window.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+// =========================================
+// FETCH OFFICERS LOGIC
+// =========================================
+async function fetchOfficers() {
+    try {
+        const response = await fetch('php/get_officers.php');
+        const data = await response.json();
+        
+        const viewBody = document.getElementById('view-officers-body');
+        const removeBody = document.getElementById('remove-officer-body');
+        
+        if(viewBody) viewBody.innerHTML = '';
+        if(removeBody) removeBody.innerHTML = '';
+
+        if(data.status === 'success' && data.data.length > 0) {
+            data.data.forEach(officer => {
+                // View Officers ටේබල් එකට
+                if(viewBody) {
+                    viewBody.innerHTML += `
+                        <tr>
+                            <td>${officer.work_id}</td>
+                            <td>${officer.full_name}</td>
+                            <td>${officer.email}</td>
+                        </tr>
+                    `;
+                }
+                // Remove Officer ටේබල් එකට
+                if(removeBody) {
+                    removeBody.innerHTML += `
+                        <tr>
+                            <td>${officer.work_id}</td>
+                            <td>${officer.full_name}</td>
+                            <td>${officer.email}</td>
+                            <td><button class="btn-danger" onclick="alert('Remove feature coming soon!')">Remove</button></td>
+                        </tr>
+                    `;
+                }
+            });
+        } else {
+            if(viewBody) viewBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No officers found.</td></tr>';
+            if(removeBody) removeBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No officers found.</td></tr>';
+        }
+    } catch (e) {
+        console.error("Error fetching officers:", e);
+    }
+}
+
+// Menu එක ක්ලික් කරද්දී ලෝඩ් වෙන්න Hook කිරීම
+const originalAdminShowSectionPhase6 = showSection;
+showSection = function(sectionId) {
+    if(typeof originalAdminShowSectionPhase6 === 'function') {
+        originalAdminShowSectionPhase6(sectionId);
+    }
+    
+    if(sectionId === 'view-officers' || sectionId === 'remove-officer') {
+        fetchOfficers();
+    }
+}
+
+// =========================================
+// ADD NEW OFFICER LOGIC
+// =========================================
+async function createNewOfficer() {
+    const fName = document.getElementById('add-officer-fname').value.trim();
+    const lName = document.getElementById('add-officer-lname').value.trim();
+    const email = document.getElementById('add-officer-email').value.trim();
+    const workId = document.getElementById('add-officer-id').value.trim();
+    const password = document.getElementById('add-officer-password').value;
+
+    // Validation (හිස්තැන් තියෙනවද බලනවා)
+    if (!fName || !lName || !email || !workId || !password) {
+        alert("Please fill in all the required fields!");
+        return;
+    }
+
+    try {
+        const response = await fetch('php/add_officer.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                work_id: workId,
+                first_name: fName,
+                last_name: lName,
+                email: email,
+                password: password
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            alert(result.message);
+            // සාර්ථක නම් ෆෝම් එක හිස් කරනවා
+            document.getElementById('add-officer-fname').value = '';
+            document.getElementById('add-officer-lname').value = '';
+            document.getElementById('add-officer-email').value = '';
+            document.getElementById('add-officer-id').value = '';
+            document.getElementById('add-officer-password').value = '';
+            
+            // අලුත් දත්ත ටික පේන්න ටේබල් එක රිෆ්‍රෙෂ් කරනවා
+            if(typeof fetchOfficers === "function") fetchOfficers();
+        } else {
+            alert("Error: " + result.message);
+        }
+    } catch (error) {
+        console.error("Error creating officer:", error);
+        alert("System Error: Could not process request.");
+    }
+}

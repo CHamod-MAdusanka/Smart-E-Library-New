@@ -731,15 +731,23 @@ async function fetchDashboardStats() {
         const response = await fetch('php/get_dashboard_stats.php');
         const data = await response.json();
         if(data.status === 'success') {
-            document.getElementById('stat-total-members').innerText = "Total Members: " + data.data.total_members;
-            document.getElementById('stat-pending-approvals').innerText = "Pending Approvals: " + data.data.pending_approvals;
-            document.getElementById('stat-total-books').innerText = "Total Books: " + data.data.total_books;
-            document.getElementById('stat-books-issued').innerText = "Books Issued: " + data.data.books_issued;
+            const elMembers = document.getElementById('stat-total-members');
+            if(elMembers) elMembers.innerText = "Total Members: " + data.data.total_members;
+
+            const elPending = document.getElementById('stat-pending-approvals');
+            if(elPending) elPending.innerText = "Pending Approvals: " + data.data.pending_approvals;
+
+            const elBooks = document.getElementById('stat-total-books');
+            if(elBooks) elBooks.innerText = "Total Books: " + data.data.total_books;
+
+            const elIssued = document.getElementById('stat-books-issued');
+            if(elIssued) elIssued.innerText = "Books Issued: " + data.data.books_issued;
         }
     } catch (e) {
         console.error("Error fetching dashboard stats", e);
     }
 }
+
 
 async function fetchActiveBorrowings() {
     try {

@@ -17,7 +17,7 @@
         
         <div class="header-center">
             <div class="search-box">
-                <input id="global-search" type="text" placeholder="Search...">
+                <input id="global-search" type="text" placeholder="Search..." autocomplete="off">
                 <span class="search-icon">🔍</span>
             </div>
         </div> 
@@ -196,16 +196,31 @@
                     <div><h2 class="section-title">Add New Officer</h2></div>
                 </div>
                 <div class="add-officer-panel">
-                    <div class="add-officer-card"></div>
-                <div class="field-grid">
-                    <div class="field-item"><input type="text" id="add-officer-fname" placeholder="First Name"></div>
-                    <div class="field-item"><input type="text" id="add-officer-lname" placeholder="Last Name"></div>
-                    <div class="field-item"><input type="email" id="add-officer-email" placeholder="Email Address"></div>
-                    <div class="field-item"><input type="text" id="add-officer-id" placeholder="Assign Work ID (e.g. LIB-001)"></div>
-                    <div class="field-item field-full"><input type="password" id="add-officer-password" placeholder="Temporary Password"></div>
-                </div>
-                    <button type="button" class="btn-save panel-button" onclick="createNewOfficer()">+ Create Account</button>
-                        
+                    <div class="add-officer-card add-officer-form"> 
+                        <div class="field-grid form-grid-2-col">
+                            <div class="field-item">
+                                <label class="form-label">First Name</label>
+                                <input type="text" id="add-officer-fname" class="form-input" placeholder="e.g. Chamod">
+                            </div>
+                            <div class="field-item">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" id="add-officer-lname" class="form-input" placeholder="e.g. Madushanka">
+                            </div>
+                            <div class="field-item">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" id="add-officer-email" class="form-input" placeholder="chamod@library.com" autocomplete="off">
+                            </div>
+                            <div class="field-item">
+                                <label class="form-label">Assign Work ID</label>
+                                <input type="text" id="add-officer-id" class="form-input" placeholder="e.g. LIB-001">
+                            </div>
+                            <div class="field-item field-full">
+                                <label class="form-label">Temporary Password</label>
+                                <input type="password" id="add-officer-password" class="form-input" placeholder="Create a strong temporary password" autocomplete="new-password">
+                            </div>
+                        </div>
+                        <button type="button" class="btn-save btn-full-width" onclick="createNewOfficer()">+ Create Officer Account</button>
+                    </div>
                 </div>
 
                 <div class="directory-panel">
@@ -213,19 +228,18 @@
                         <div><h3>Active Officers Directory</h3></div>
                     </div>
                     <div class="table-card">
-                    <table class="styled-table">
-                    <thead>
-                <tr>
-                    <th>Work ID</th>
-                    <th>Full Name</th>
-                    <th>Email</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-    </thead>
-    <tbody id="active-officers-directory-body">
-    </tbody>
-</table>                   </tbody>
+                        <table class="styled-table">
+                            <thead>
+                                <tr>
+                                    <th>Work ID</th>
+                                    <th>Full Name</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="active-officers-directory-body">
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -242,8 +256,7 @@
                                 <thead>
                                     <tr><th>Work ID</th><th>Full Name</th><th>Email</th><th>Action</th></tr>
                                 </thead>
-                                <tbody>
-                                    <tr><td>EMP001</td><td>Chamod Perera</td><td>chamod@elibrary.com</td><td><button class="btn-danger" onclick="openDeleteModal()">Remove</button></td></tr>
+                                <tbody id="remove-officer-body">
                                 </tbody>
                             </table>
                         </div>
@@ -678,6 +691,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=5"></script>
+    <script src="js/app.js?v=6"></script>
 </body>
 </html>

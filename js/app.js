@@ -985,7 +985,7 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 
 // =========================================
-// FETCH OFFICERS LOGIC
+// FETCH OFFICERS LOGIC (Updated for 3 Tables)
 // =========================================
 async function fetchOfficers() {
     try {
@@ -994,13 +994,15 @@ async function fetchOfficers() {
         
         const viewBody = document.getElementById('view-officers-body');
         const removeBody = document.getElementById('remove-officer-body');
+        const directoryBody = document.getElementById('active-officers-directory-body'); 
         
         if(viewBody) viewBody.innerHTML = '';
         if(removeBody) removeBody.innerHTML = '';
+        if(directoryBody) directoryBody.innerHTML = '';
 
         if(data.status === 'success' && data.data.length > 0) {
             data.data.forEach(officer => {
-                // View Officers ටේබල් එකට
+                // 1. View Officers table
                 if(viewBody) {
                     viewBody.innerHTML += `
                         <tr>
@@ -1010,7 +1012,7 @@ async function fetchOfficers() {
                         </tr>
                     `;
                 }
-                // Remove Officer ටේබල් එකට
+                // 2. Remove Officer table
                 if(removeBody) {
                     removeBody.innerHTML += `
                         <tr>
@@ -1021,24 +1023,38 @@ async function fetchOfficers() {
                         </tr>
                     `;
                 }
+                // 3. Add Officer's active directory table
+                if(directoryBody) {
+                    directoryBody.innerHTML += `
+                        <tr>
+                            <td>${officer.work_id}</td>
+                            <td>${officer.full_name}</td>
+                            <td>${officer.email}</td>
+                            <td><span class="status-badge active">Active</span></td>
+                            <td><button class="btn-secondary" onclick="openPasswordModal('${officer.work_id}', '${officer.full_name}')">Edit</button></td>
+                        </tr>
+                    `;
+                }
             });
         } else {
             if(viewBody) viewBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No officers found.</td></tr>';
             if(removeBody) removeBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No officers found.</td></tr>';
+            if(directoryBody) directoryBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No officers found.</td></tr>';
         }
     } catch (e) {
         console.error("Error fetching officers:", e);
     }
 }
 
-// Menu එක ක්ලික් කරද්දී ලෝඩ් වෙන්න Hook කිරීම
+// Menu hook to load officers correctly
 const originalAdminShowSectionPhase6 = showSection;
 showSection = function(sectionId) {
     if(typeof originalAdminShowSectionPhase6 === 'function') {
         originalAdminShowSectionPhase6(sectionId);
     }
     
-    if(sectionId === 'view-officers' || sectionId === 'remove-officer') {
+    // Add Officer section click trigger
+    if(sectionId === 'view-officers' || sectionId === 'remove-officer' || sectionId === 'add-officer') {
         fetchOfficers();
     }
 }
@@ -1053,7 +1069,6 @@ async function createNewOfficer() {
     const workId = document.getElementById('add-officer-id').value.trim();
     const password = document.getElementById('add-officer-password').value;
 
-    // Validation (හිස්තැන් තියෙනවද බලනවා)
     if (!fName || !lName || !email || !workId || !password) {
         alert("Please fill in all the required fields!");
         return;
@@ -1076,14 +1091,12 @@ async function createNewOfficer() {
         
         if (result.status === 'success') {
             alert(result.message);
-            // සාර්ථක නම් ෆෝම් එක හිස් කරනවා
             document.getElementById('add-officer-fname').value = '';
             document.getElementById('add-officer-lname').value = '';
             document.getElementById('add-officer-email').value = '';
             document.getElementById('add-officer-id').value = '';
             document.getElementById('add-officer-password').value = '';
             
-            // අලුත් දත්ත ටික පේන්න ටේබල් එක රිෆ්‍රෙෂ් කරනවා
             if(typeof fetchOfficers === "function") fetchOfficers();
         } else {
             alert("Error: " + result.message);

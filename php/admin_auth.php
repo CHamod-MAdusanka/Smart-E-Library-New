@@ -6,7 +6,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $adminId = $_POST['adminId'];
     $adminPassword = $_POST['adminPassword'];
 
-    $sql = "SELECT work_id, password FROM admins WHERE work_id = ?";
+ 
+    $sql = "SELECT work_id, password, role FROM admins WHERE work_id = ?";
     $stmt = $conn->prepare($sql);
     
     if (!$stmt) {
@@ -19,11 +20,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
-        // Check password (In real world, use password_hash and password_verify)
+        
+ 
         if ($adminPassword === $user['password']) {
             $_SESSION['admin_id'] = $user['work_id'];
-            header("Location: ../admin-dashboard.html");
+            
+        
+            if ($user['role'] === 'Head Admin') {
+                header("Location: ../head-dashboard.html");
+            } else {
+                header("Location: ../admin-dashboard.html");
+            }
             exit();
+            
         } else {
             echo "<script>alert('Incorrect Password!'); window.location.href='../admin-login.html';</script>";
         }

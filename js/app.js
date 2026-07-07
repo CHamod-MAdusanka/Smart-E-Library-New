@@ -78,7 +78,8 @@ if (globalSearchInput) {
 // DROPDOWN & NOTIFICATION LOGIC
 // =========================================
 function toggleDropdown(id) {
-    document.getElementById(id).classList.toggle('show');
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('show');
 }
 
 window.addEventListener('click', function(e) {
@@ -97,20 +98,16 @@ let localProfileData = {};
 
 async function loadUserProfileData() {
     try {
-        // අලුත් PHP ෆයිල් එකෙන් දත්ත ඉල්ලනවා
         const response = await fetch('php/get_admin_profile.php');
         const result = await response.json();
 
-        // කවුරුහරි හොරෙන් ලොග් වෙන්න හැදුවොත් කෙලින්ම ලොගින් පිටුවට විසි කරනවා
         if (result.status === "error") {
             window.location.href = "admin-login.html";
             return;
         }
 
-        // ඩේටාබේස් එකෙන් ආපු දත්ත අපේ localProfileData එකට දාගන්නවා
         localProfileData = result.data;
 
-        // තිරයේ තියෙන අදාළ කොටු වලට ඇත්තම දත්ත යවනවා
         const headerName = document.getElementById('header-profile-name');
         const headerImg = document.getElementById('header-profile-img');
         const settingsName = document.getElementById('profile-name-input');
@@ -308,8 +305,8 @@ function renderBorrowings() {
     const tbody = document.getElementById('borrowings-body');
     if(!tbody) return;
     
-    const prefDays = parseInt(document.getElementById('pref-days').value) || 14;
-    const prefFine = parseInt(document.getElementById('pref-fine').value) || 20;
+    const prefDays = parseInt(document.getElementById('pref-days')?.value) || 14;
+    const prefFine = parseInt(document.getElementById('pref-fine')?.value) || 20;
     const today = new Date("2026-06-18"); 
 
     tbody.innerHTML = activeBorrowings.map(b => {
@@ -364,8 +361,8 @@ function renderReturns() {
     const tbody = document.getElementById('returns-body');
     if(!tbody) return;
 
-    const prefDays = parseInt(document.getElementById('pref-days').value) || 14;
-    const prefFine = parseInt(document.getElementById('pref-fine').value) || 20;
+    const prefDays = parseInt(document.getElementById('pref-days')?.value) || 14;
+    const prefFine = parseInt(document.getElementById('pref-fine')?.value) || 20;
 
     tbody.innerHTML = pendingReturns.map(b => {
         const iDate = new Date(b.issueDate);
@@ -423,20 +420,31 @@ let systemRacks = [
 
 function openRfidModal(targetId, targetName, targetType) {
     currentRfidTarget = { id: targetId, type: targetType };
-    document.getElementById('rfid-modal-title').textContent = `Assign RFID: ${targetType}`;
-    document.getElementById('rfid-modal-text').textContent = `Please tap the card to link with ${targetName} (${targetId}).`;
+    const modalTitle = document.getElementById('rfid-modal-title');
+    const modalText = document.getElementById('rfid-modal-text');
+    
+    if(modalTitle) modalTitle.textContent = `Assign RFID: ${targetType}`;
+    if(modalText) modalText.textContent = `Please tap the card to link with ${targetName} (${targetId}).`;
     
     const scanInput = document.getElementById('rfid-scanner-input');
-    scanInput.value = ''; 
-    document.getElementById('rfid-modal').style.display = 'flex';
+    if(scanInput) {
+        scanInput.value = ''; 
+        setTimeout(() => { scanInput.focus(); }, 100);
+    }
     
-    setTimeout(() => { scanInput.focus(); }, 100);
+    const modal = document.getElementById('rfid-modal');
+    if(modal) modal.style.display = 'flex';
 }
 
-function closeRfidModal() { document.getElementById('rfid-modal').style.display = 'none'; }
+function closeRfidModal() { 
+    const modal = document.getElementById('rfid-modal');
+    if(modal) modal.style.display = 'none'; 
+}
 
 function saveRfidData() {
-    const scannedCode = document.getElementById('rfid-scanner-input').value.trim();
+    const scanInput = document.getElementById('rfid-scanner-input');
+    const scannedCode = scanInput ? scanInput.value.trim() : '';
+    
     if (!scannedCode) { alert("Warning: No RFID detected!"); return; }
 
     if (currentRfidTarget.type === 'Student') {
@@ -465,12 +473,13 @@ function renderRacks() {
 }
 
 function addNewRack() {
-    const nameInput = document.getElementById('rack-name-input').value.trim();
-    if(!nameInput) { alert("Please enter a valid Rack Name."); return; }
+    const nameInput = document.getElementById('rack-name-input');
+    if(!nameInput || !nameInput.value.trim()) { alert("Please enter a valid Rack Name."); return; }
+    
     const newId = "RCK-" + String(systemRacks.length + 1).padStart(3, '0');
-    systemRacks.push({ id: newId, name: nameInput, rfid: "Not Assigned" });
+    systemRacks.push({ id: newId, name: nameInput.value.trim(), rfid: "Not Assigned" });
     renderRacks();
-    document.getElementById('rack-name-input').value = '';
+    nameInput.value = '';
 }
 
 // =========================================
@@ -480,6 +489,7 @@ function getCategoryCode(cat) {
     const map = { novel: 'nov', science: 'sci', history: 'his', education: 'edu' };
     return map[cat] || cat.substring(0, 3).toLowerCase();
 }
+
 function generateBookId(cat, rack) {
     if (!cat || !rack) return '';
     const code = getCategoryCode(cat);
@@ -492,10 +502,15 @@ function generateBookId(cat, rack) {
     }, 0);
     return `${code}${String(maxIndex + 1).padStart(2, '0')}-${rack}`;
 }
+
 function updateBookIdPreview() {
-    const cat = document.getElementById('book-category').value;
-    const rack = document.getElementById('book-rack').value.trim();
-    document.getElementById('book-id').value = generateBookId(cat, rack);
+    const catEl = document.getElementById('book-category');
+    const rackEl = document.getElementById('book-rack');
+    const idEl = document.getElementById('book-id');
+    
+    if(catEl && rackEl && idEl) {
+        idEl.value = generateBookId(catEl.value, rackEl.value.trim());
+    }
 }
 
 function renderTables() {
@@ -552,7 +567,7 @@ function addNewBook() {
     const coverIn = document.getElementById('book-cover');
     const idIn = document.getElementById('book-id');
 
-    if (!titleIn.value.trim() || !authorIn.value.trim() || !catIn.value || !rackIn.value.trim()) {
+    if (!titleIn || !titleIn.value.trim() || !authorIn.value.trim() || !catIn.value || !rackIn.value.trim()) {
         alert("Please fill all necessary fields."); return;
     }
 
@@ -564,9 +579,11 @@ function addNewBook() {
         alert("Book successfully added!");
     };
 
-    if (coverIn.files[0]) {
+    if (coverIn && coverIn.files[0]) {
         const reader = new FileReader(); reader.onload = () => saveAction(reader.result); reader.readAsDataURL(coverIn.files[0]);
-    } else saveAction(null);
+    } else {
+        saveAction(null);
+    }
 }
 
 function confirmDeleteBook(id, title) {
@@ -582,24 +599,7 @@ function openPasswordModal() { document.getElementById('password-modal').style.d
 function closePasswordModal() { document.getElementById('password-modal').style.display = 'none'; }
 function confirmPasswordChange() { alert("Temporary password changed!"); closePasswordModal(); }
 
-// =========================================
-// INITIALIZATION 
-// =========================================
-window.addEventListener('DOMContentLoaded', function() {
-    loadUserProfileData(); 
 
-    const catSel = document.getElementById('book-category');
-    const rackIn = document.getElementById('book-rack');
-    const addBtn = document.getElementById('book-add-button');
-    const removeCatFilter = document.getElementById('remove-book-category');
-
-    if (catSel) catSel.addEventListener('change', updateBookIdPreview);
-    if (rackIn) rackIn.addEventListener('input', updateBookIdPreview);
-    if (addBtn) addBtn.addEventListener('click', addNewBook);
-    if (removeCatFilter) removeCatFilter.addEventListener('change', renderTables);
-
-    renderTables(); renderBorrowings(); renderReturns(); renderRacks();
-});
 // =========================================
 // STUDENT MANAGEMENT DYNAMIC LOGIC
 // =========================================
@@ -651,7 +651,6 @@ async function fetchAllStudents() {
             data.data.forEach(student => {
                 const pic = student.profile_pic ? student.profile_pic : 'static/chamod.png';
                 
-                // For View All
                 if(allTbody) {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
@@ -663,7 +662,6 @@ async function fetchAllStudents() {
                     allTbody.appendChild(tr);
                 }
 
-                // For Remove
                 if(removeTbody) {
                     const tr2 = document.createElement('tr');
                     tr2.innerHTML = `
@@ -723,7 +721,7 @@ async function rejectStudent(studentId) {
 }
 
 // =========================================
-// PHASE 2: ADMIN DYNAMIC LOGIC
+// PHASE 2: ADMIN DYNAMIC LOGIC (FIXED)
 // =========================================
 
 async function fetchDashboardStats() {
@@ -747,7 +745,6 @@ async function fetchDashboardStats() {
         console.error("Error fetching dashboard stats", e);
     }
 }
-
 
 async function fetchActiveBorrowings() {
     try {
@@ -779,11 +776,11 @@ async function fetchActiveBorrowings() {
     }
 }
 
-async function issueNewBook() {
-    const studentId = document.getElementById('issue-student-id').value.trim();
-    const bookId = document.getElementById('issue-book-id').value.trim();
+async function issueNewBookPhase2() {
+    const studentId = document.getElementById('issue-student-id');
+    const bookId = document.getElementById('issue-book-id');
     
-    if(!studentId || !bookId) {
+    if(!studentId || !bookId || !studentId.value.trim() || !bookId.value.trim()) {
         alert("Please enter both Student ID and Book ID.");
         return;
     }
@@ -792,13 +789,13 @@ async function issueNewBook() {
         const response = await fetch('php/issue_book.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ student_id: studentId, book_id: bookId })
+            body: JSON.stringify({ student_id: studentId.value.trim(), book_id: bookId.value.trim() })
         });
         const result = await response.json();
         alert(result.message);
         if(result.status === 'success') {
-            document.getElementById('issue-student-id').value = '';
-            document.getElementById('issue-book-id').value = '';
+            studentId.value = '';
+            bookId.value = '';
             fetchDashboardStats();
             fetchActiveBorrowings();
         }
@@ -810,18 +807,16 @@ async function issueNewBook() {
 // Hook into showSection for Phase 2
 const originalShowSectionPhase2 = showSection;
 showSection = function(sectionId) {
-    originalShowSectionPhase2(sectionId);
-    if(sectionId === 'home') {
+    if(typeof originalShowSectionPhase2 === 'function') {
+        originalShowSectionPhase2(sectionId);
+    }
+    if(sectionId === 'home' || sectionId === 'dashboard-home') {
         fetchDashboardStats();
     } else if (sectionId === 'active-borrowings') {
         fetchActiveBorrowings();
     }
 }
 
-// Fetch stats on load
-window.addEventListener('DOMContentLoaded', () => {
-    fetchDashboardStats();
-});
 
 // =========================================
 // PHASE 5: ADMIN RESERVATIONS
@@ -904,10 +899,6 @@ showSection = function(sectionId) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    fetchAdminReservations();
-});
-
 // =========================================
 // FETCH ADMIN BOOKS LIST
 // =========================================
@@ -950,8 +941,45 @@ showSection = function(sectionId) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // If the remove book section is visible by default (it's usually hidden), fetch books.
-    // We'll fetch it just in case.
+// =========================================
+// GLOBAL INITIALIZATION (FIXED)
+// =========================================
+window.addEventListener('DOMContentLoaded', function() {
+    // 1. Load user profile
+    loadUserProfileData(); 
+    
+    // 2. Fetch basic data
+    fetchDashboardStats();
+    fetchAdminReservations();
     fetchAdminBooks();
+    
+    // 3. Render any static tables
+    renderTables(); 
+    renderBorrowings(); 
+    renderReturns(); 
+    renderRacks();
+    
+    // 4. Attach event listeners
+    const catSel = document.getElementById('book-category');
+    const rackIn = document.getElementById('book-rack');
+    const addBtn = document.getElementById('book-add-button');
+    const removeCatFilter = document.getElementById('remove-book-category');
+
+    if (catSel) catSel.addEventListener('change', updateBookIdPreview);
+    if (rackIn) rackIn.addEventListener('input', updateBookIdPreview);
+    if (addBtn) addBtn.addEventListener('click', addNewBook);
+    if (removeCatFilter) removeCatFilter.addEventListener('change', renderTables);
+
+    // 5. FIX FOR THE WHITE SCREEN: Force open the Home section on load!
+    // It checks for 'home' or 'dashboard-home' which are the common IDs you might have used.
+    const homeEl = document.getElementById('home') || document.getElementById('dashboard-home');
+    if (homeEl) {
+        showSection(homeEl.id);
+    } else {
+        // Fallback: Just open the very first dynamic section it finds
+        const firstSection = document.querySelector('.dynamic-section');
+        if (firstSection) {
+            showSection(firstSection.id);
+        }
+    }
 });

@@ -378,3 +378,103 @@ window.addEventListener('DOMContentLoaded', function() {
     const homeEl = document.getElementById('home') || document.getElementById('dashboard-home');
     if (homeEl) showSection(homeEl.id);
 });
+
+// =========================================
+// 8. SETTINGS & PROFILE MANAGEMENT
+// =========================================
+
+// 1. පින්තූරය තෝරපු ගමන් Preview එක වෙනස් කිරීම
+const profileImgInput = document.getElementById('profile-img-input');
+if(profileImgInput) {
+    profileImgInput.addEventListener('change', function(e) {
+        if(e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('settings-profile-preview').src = event.target.result;
+            }
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    });
+}
+
+// 2. Profile Update Modal එක පාලනය කිරීම
+function openProfileAuthModal() {
+    document.getElementById('profile-auth-password').value = '';
+    document.getElementById('profile-auth-error').style.display = 'none';
+    document.getElementById('profile-auth-modal').style.display = 'flex';
+}
+function closeProfileAuthModal() { document.getElementById('profile-auth-modal').style.display = 'none'; }
+
+// Profile එකේ දත්ත Database එකට යැවීම
+async function confirmProfileAuth() {
+    const pass = document.getElementById('profile-auth-password').value;
+    const name = document.getElementById('profile-name-input').value.trim();
+    const email = document.getElementById('profile-email-input').value.trim();
+    const imgSrc = document.getElementById('settings-profile-preview').src;
+
+    if(!pass) {
+        document.getElementById('profile-auth-error').innerText = "Please enter your password!";
+        document.getElementById('profile-auth-error').style.display = 'block';
+        return;
+    }
+
+    try {
+        const res = await fetch('php/update_admin_profile.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ password: pass, full_name: name, email: email, profile_pic: imgSrc })
+        });
+        const result = await res.json();
+        
+        if(result.status === 'success') {
+            alert(result.message);
+            closeProfileAuthModal();
+            loadUserProfileData(); // Header එකේ නම සහ පින්තූරය අලුත් කරන්න
+        } else {
+            document.getElementById('profile-auth-error').innerText = result.message;
+            document.getElementById('profile-auth-error').style.display = 'block';
+        }
+    } catch(e) { console.error("Profile Update Error:", e); }
+}
+
+// 3. Password මාරු කිරීමේ ක්‍රියාවලිය
+function startPasswordChange() {
+    document.getElementById('pw-step-0').style.display = 'none';
+    document.getElementById('pw-step-1').style.display = 'block';
+}
+function cancelPasswordChange() {
+    document.getElementById('pw-step-1').style.display = 'none';
+    document.getElementById('pw-step-2').style.display = 'none';
+    document.getElementById('pw-step-0').style.display = 'block';
+}
+function verifyCurrentPassword() {
+    const curr = document.getElementById('pw-current').value;
+    if(!curr) return alert("Enter current password!");
+    document.getElementById('pw-step-1').style.display = 'none';
+    document.getElementById('pw-step-2').style.display = 'block';
+}
+async function confirmUpdatePassword() {
+    const curr = document.getElementById('pw-current').value;
+    const newPw = document.getElementById('pw-new').value;
+    const confPw = document.getElementById('pw-confirm').value;
+
+    if(!newPw || newPw !== confPw) return alert("New passwords do not match!");
+
+    try {
+        const res = await fetch('php/change_admin_password.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ current_password: curr, new_password: newPw })
+        });
+        const result = await res.json();
+        if(result.status === 'success') {
+            document.getElementById('pw-success-modal').style.display = 'flex';
+        } else {
+            alert(result.message);
+        }
+    } catch(e) { console.error("Password Update Error:", e); }
+}
+function closePwSuccess() {
+    document.getElementById('pw-success-modal').style.display = 'none';
+    cancelPasswordChange();
+}

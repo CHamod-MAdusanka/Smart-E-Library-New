@@ -14,7 +14,7 @@ if (isset($data['student_id']) && isset($data['book_id'])) {
     $studentId = $data['student_id'];
     $bookId = $data['book_id'];
 
-    // Ensure student exists and is approved
+    // === Book Issuance ===
     $stmt = $conn->prepare("SELECT student_id FROM students WHERE student_id = ? AND status='Approved'");
     $stmt->bind_param("s", $studentId);
     $stmt->execute();
@@ -23,7 +23,7 @@ if (isset($data['student_id']) && isset($data['book_id'])) {
         exit();
     }
     
-    // Ensure book is available
+    
     $stmt = $conn->prepare("SELECT status FROM books WHERE book_id = ?");
     $stmt->bind_param("s", $bookId);
     $stmt->execute();
@@ -38,7 +38,7 @@ if (isset($data['student_id']) && isset($data['book_id'])) {
          exit();
     }
     
-    // Issue Book
+    
     $conn->begin_transaction();
     try {
         $stmt = $conn->prepare("UPDATE books SET status='Borrowed' WHERE book_id=?");

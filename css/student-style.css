@@ -1,5 +1,5 @@
 /* ========================================= */
-/* 1. GLOBAL & TEAL/SLATE THEME              */
+/* === Global Theme === */
 /* ========================================= */
 :root {
     --bg-slate: #2E363F; 
@@ -18,7 +18,7 @@ body {
 }
 
 /* ========================================= */
-/* 2. DASHBOARD HEADER                       */
+/* === Dashboard Header === */
 /* ========================================= */
 .dashboard-header {
     display: flex;
@@ -92,7 +92,7 @@ body {
     background-color: #FFFFFF; 
 }
 
-/* DROPDOWNS */
+/* === Dropdown Navigation === */
 .dropdown { position: relative; }
 .dropdown-content {
     display: none;
@@ -115,7 +115,7 @@ body {
 .dropdown-content.show { display: block; }
 
 /* ========================================= */
-/* 3. SIDEBAR LAYOUT & SMOOTH ANIMATION      */
+/* === Sidebar Layout === */
 /* ========================================= */
 .dashboard-container { 
     display: flex; 
@@ -159,7 +159,7 @@ body {
 .settings-item { margin-top: 20px; border-top: 1px solid var(--bg-slate-dark); }
 
 /* ========================================= */
-/* 4. MAIN CONTENT AREA & HERO OVERLAY       */
+/* === Main Content and Hero Overlay === */
 /* ========================================= */
 .main-content { 
     flex: 1; 
@@ -176,11 +176,11 @@ body {
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Hero Box Covering - Full Viewport */
+/* === Hero Section === */
 .library-hero-full {
     margin: -40px; 
     width: calc(100% + 80px); 
-    height: calc(100vh - 70px); /* ආයෙත් තිරය පුරාම වැහෙන්න හැදුවා */
+    height: calc(100vh - 70px);
     border-radius: 0; 
     overflow: hidden;
     position: relative; 
@@ -208,15 +208,15 @@ body {
 }
 
 /* ========================================= */
-/* 5. STUDENT STATS CARDS (GLASS OVERLAY)    */
+/* === Student Statistics === */
 /* ========================================= */
 
-/* පින්තූරය උඩින් පාවෙන විදිහට හදපු Grid එක */
+
 .overlay-stats-grid {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%); /* හරියටම මැදට ගත්තා */
+    transform: translate(-50%, -50%);
     z-index: 10;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -226,18 +226,18 @@ body {
 }
 
 .stat-card {
-    border-radius: 12px; /* පොඩ්ඩක් රවුම් කළා ලස්සනට */
+    border-radius: 12px;
     padding: 30px 25px;
     text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2); /* ගැඹුරු සෙවනැල්ලක් */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
-/* වීදුරුවක් වගේ පේන Glassmorphism ස්ටයිල් එක */
+
 .glass-card {
-    background: rgba(255, 255, 255, 0.85); /* සුදු පාට විනිවිද පෙනෙන */
-    backdrop-filter: blur(12px); /* පිටිපස්සේ පින්තූරය බොඳ වෙනවා */
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.5); /* සුදු බෝඩර් එකක් */
+    border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .stat-card h4 {
@@ -262,7 +262,7 @@ body {
     font-weight: bold;
     color: #10B981;
     font-family: monospace;
-    background: rgba(16, 185, 129, 0.15); /* Timer එකේ පසුබිම */
+    background: rgba(16, 185, 129, 0.15);
     padding: 12px;
     border-radius: 6px;
     display: inline-block;
@@ -277,7 +277,7 @@ body {
 }
 
 /* ========================================= */
-/* 6. BOOK GRID & CATEGORY BUTTONS           */
+/* === Book Grid and Filters === */
 /* ========================================= */
 .browse-header-wrapper {
     display: flex;
@@ -351,7 +351,7 @@ body {
 .btn-disabled { background: #E2E8F0; color: #94A3B8; cursor: not-allowed; }
 
 /* ========================================= */
-/* 7. TABLES STYLE                           */
+/* === Tables === */
 /* ========================================= */
 .table-card { background: #FFFFFF; border-radius: 8px; overflow: hidden; margin-top: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 .styled-table { width: 100%; border-collapse: collapse; text-align: left; }
@@ -369,7 +369,7 @@ body {
 .btn-danger-sm { background: #EF4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
 
 /* ========================================= */
-/* 8. PROFILE PICTURE & TEXT VIEW SETTINGS   */
+/* === Profile Display === */
 /* ========================================= */
 .profile-picture-wrapper {
     position: relative;
@@ -432,7 +432,7 @@ body {
 .form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: bold; color: var(--bg-slate); }
 .settings-card { background: #FFFFFF; padding: 25px; border-radius: 8px; max-width: 400px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);}
 /* ========================================= */
-/* PHASE 3: PREMIUM ANIMATIONS               */
+/* === Premium Animations === */
 /* ========================================= */
 @keyframes fadeInUp {
     from {

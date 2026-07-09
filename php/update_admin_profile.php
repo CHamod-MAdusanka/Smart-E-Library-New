@@ -15,7 +15,7 @@ $fullName = $data['full_name'];
 $email = $data['email'];
 $pic = $data['profile_pic'];
 
-// 1. Password එක හරිද බලනවා
+// === Profile Update ===
 $stmt = $conn->prepare("SELECT password FROM admins WHERE work_id = ?");
 $stmt->bind_param("s", $adminId);
 $stmt->execute();
@@ -26,12 +26,12 @@ if($user['password'] !== $pass) {
     exit();
 }
 
-// 2. නම කෑලි දෙකකට කඩනවා (First name, Last name)
+
 $nameParts = explode(" ", $fullName, 2);
 $fName = $nameParts[0];
 $lName = isset($nameParts[1]) ? $nameParts[1] : '';
 
-// 3. Database එක Update කරනවා
+
 $update = $conn->prepare("UPDATE admins SET first_name=?, last_name=?, email=?, profile_pic=? WHERE work_id=?");
 $update->bind_param("sssss", $fName, $lName, $email, $pic, $adminId);
 

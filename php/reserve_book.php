@@ -14,7 +14,7 @@ if (isset($data['book_id'])) {
     $studentId = $_SESSION['student_id'];
     $bookId = $data['book_id'];
 
-    // Check if available
+    // === Book Reservation ===
     $stmt = $conn->prepare("SELECT status FROM books WHERE book_id = ?");
     $stmt->bind_param("s", $bookId);
     $stmt->execute();

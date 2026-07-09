@@ -2,7 +2,7 @@
 session_start();
 header('Content-Type: application/json');
 
-// Head Admin ද කියලා තහවුරු කරගන්නවා
+// === Access Control ===
 if (!isset($_SESSION['admin_id'])) {
     echo json_encode(["status" => "error", "message" => "Unauthorized access!"]);
     exit();
@@ -17,10 +17,9 @@ if (isset($data['work_id']) && isset($data['email'])) {
     $lastName = $data['last_name'];
     $email = $data['email'];
     $password = $data['password'];
-    $role = "Officer"; // සාමාන්‍ය නිලධාරියෙක් නිසා Role එක Officer දෙනවා
-    $profilePic = "static/admin.png"; // Default පින්තූරය
+    $role = "Officer";
+    $profilePic = "static/admin.png";
 
-    // Work ID එක දැනටමත් තියෙනවද බලනවා
     $checkStmt = $conn->prepare("SELECT work_id FROM admins WHERE work_id = ?");
     $checkStmt->bind_param("s", $workId);
     $checkStmt->execute();
@@ -30,7 +29,7 @@ if (isset($data['work_id']) && isset($data['email'])) {
     }
     $checkStmt->close();
 
-    // අලුත් නිලධාරියාව Table එකට ඇතුළත් කරනවා
+    
     $sql = "INSERT INTO admins (work_id, first_name, last_name, email, role, profile_pic, password) VALUES (?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("sssssss", $workId, $firstName, $lastName, $email, $role, $profilePic, $password);

@@ -1,5 +1,5 @@
 /* ========================================= */
-/* 1. GLOBAL & TEAL/SLATE THEME              */
+/* === Global Theme === */
 /* ========================================= */
 :root {
     --bg-slate: #2E363F; 
@@ -18,7 +18,7 @@ body {
 }
 
 /* ========================================= */
-/* 2. LANDING PAGE (HERO) STYLES             */
+/* === Landing Page Hero === */
 /* ========================================= */
 .top-bar { 
     background-color: var(--bg-slate); 
@@ -55,7 +55,7 @@ body {
 }
 .btn:hover { background: var(--accent-teal); color: white !important; }
 
-/* Hero Section with student2.jpg */
+/* === Hero Background === */
 .hero { 
     background-image: linear-gradient(rgba(46, 54, 63, 0.7), rgba(34, 40, 49, 0.8)), url('../static/student2.jpg'); 
     background-size: cover; 
@@ -84,14 +84,14 @@ body {
 }
 
 /* ========================================= */
-/* 3. LOGIN & FORGOT PASSWORD PAGE STYLES    */
+/* === Authentication Pages === */
 /* ========================================= */
 .login-wrapper { 
     min-height: 100vh; 
     display: flex; 
     justify-content: center; 
     align-items: center; 
-    /* Login background with student3.jpg */
+    /* === Login Background === */
     background-image: linear-gradient(rgba(244, 246, 248, 0.85), rgba(244, 246, 248, 0.95)), url('../static/student3.jpg');
     background-size: cover;
     background-position: center;

@@ -14,12 +14,11 @@ if(isset($data['new_head_id'])) {
 
     $conn->begin_transaction();
     try {
-        // අලුත් කෙනාව Head Admin කරනවා
         $stmt1 = $conn->prepare("UPDATE admins SET role='Head Admin' WHERE work_id=?");
         $stmt1->bind_param("s", $newHead);
         $stmt1->execute();
 
-        // දැනට ඉන්න කෙනාව සාමාන්‍ය Officer කෙනෙක් කරනවා
+        
         $stmt2 = $conn->prepare("UPDATE admins SET role='Officer' WHERE work_id=?");
         $stmt2->bind_param("s", $currentAdmin);
         $stmt2->execute();

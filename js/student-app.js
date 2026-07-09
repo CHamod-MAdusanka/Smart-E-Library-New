@@ -1,9 +1,8 @@
 // ==========================================
-// 🧭 UI Layout, Sidebar Toggle & Navigation
+// === Navigation and Layout ===
 // ==========================================
 document.addEventListener('DOMContentLoaded', function() {
     
-    // 1. Sidebar Toggle Animation Logic
     const menuBtn = document.getElementById('menu-btn');
     const container = document.querySelector('.dashboard-container');
 
@@ -13,20 +12,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 2. Initialize Search & Filters
+    
     initializeSearchAndFilters();
     
-    // 3. Initialize File Upload listener
+    
     initializeProfilePictureListener();
 
-    // 4. Start Countdown Timer for Home Page
-    startReturnTimer();
-
-    // 5. ඩේටාබේස් එකෙන් ප්‍රොෆයිල් දත්ත ගෙන ඒම
+    
     loadStudentProfileData();
 });
 
-// Navigation controller
 function showSection(sectionId) {
     document.querySelectorAll('.dynamic-section').forEach(s => s.style.display = 'none');
     const target = document.getElementById(sectionId);
@@ -42,20 +37,48 @@ function toggleDropdown(id) {
     document.getElementById(id).classList.toggle('show');
 }
 
+
+window.onclick = function(event) {
+    
+    if (!event.target.matches('.profile-btn') && !event.target.closest('.profile-btn')) {
+        var dropdowns = document.getElementsByClassName("dropdown-content");
+        for (var i = 0; i < dropdowns.length; i++) {
+            var openDropdown = dropdowns[i];
+            if (openDropdown.classList.contains('show')) {
+                openDropdown.classList.remove('show');
+            }
+        }
+    }
+}
+
 // ==========================================
-// ⏳ Home Page Countdown Timer Logic
+// === Borrowing Countdown ===
 // ==========================================
-function startReturnTimer() {
+let countdownInterval = null;
+
+function updateCountdownTimer(dueDates) {
     const timerElement = document.getElementById('return-timer');
     if (!timerElement) return;
 
-    // Demo deadline: 7 days from now
-    const deadline = new Date();
-    deadline.setDate(deadline.getDate() + 7);
+    
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+    }
 
-    setInterval(() => {
+    
+    if (!dueDates || dueDates.length === 0) {
+        timerElement.innerText = "No active books";
+        timerElement.style.color = "var(--text-dark)";
+        timerElement.style.background = "transparent";
+        return;
+    }
+
+    
+    const closestDate = new Date(Math.min(...dueDates.map(d => new Date(d + 'T23:59:59').getTime())));
+
+    countdownInterval = setInterval(() => {
         const now = new Date();
-        const diff = deadline - now;
+        const diff = closestDate - now;
 
         if (diff <= 0) {
             timerElement.innerText = "OVERDUE!";
@@ -69,15 +92,17 @@ function startReturnTimer() {
         const m = Math.floor((diff / 1000 / 60) % 60);
         const s = Math.floor((diff / 1000) % 60);
 
-        // Format to always show 2 digits (e.g., 05m 09s)
         const format = (num) => num.toString().padStart(2, '0');
-
         timerElement.innerText = `${d}d : ${format(h)}h : ${format(m)}m : ${format(s)}s`;
+        
+        
+        timerElement.style.color = "";
+        timerElement.style.background = "";
     }, 1000);
 }
 
 // ==========================================
-// 🔍 Search & Category Filter Logic
+// === Catalog Search and Filters ===
 // ==========================================
 function initializeSearchAndFilters() {
     const searchInput = document.getElementById('global-search');
@@ -86,6 +111,7 @@ function initializeSearchAndFilters() {
             const searchTerm = e.target.value.toLowerCase();
             const bookCards = document.querySelectorAll('.book-card');
             if(searchTerm.length > 0) { showSection('browse-books'); }
+            
             bookCards.forEach(card => {
                 const title = card.querySelector('.book-title').textContent.toLowerCase();
                 const author = card.querySelector('.author').textContent.toLowerCase();
@@ -105,6 +131,7 @@ function initializeSearchAndFilters() {
             this.classList.add('active');
             const filterValue = this.getAttribute('data-filter');
             const bookCards = document.querySelectorAll('.book-card');
+            
             bookCards.forEach(card => {
                 if (filterValue === 'all' || card.getAttribute('data-category') === filterValue) {
                     card.style.display = 'flex';
@@ -117,7 +144,7 @@ function initializeSearchAndFilters() {
 }
 
 // ==========================================
-// 🙎‍♂️ Profile Management (Connected to DB)
+// === Profile Management ===
 // ==========================================
 let localStudentData = {};
 
@@ -133,24 +160,26 @@ async function loadStudentProfileData() {
 
         localStudentData = result.data;
 
-        // Header එකේ දත්ත පිරවීම
+        
         const headerName = document.getElementById('header-profile-name');
         const headerImg = document.getElementById('header-profile-img');
         if (headerName) headerName.textContent = localStudentData.name;
         if (headerImg) headerImg.src = localStudentData.avatar;
 
-        // Settings Profile ටැබ් එකේ දත්ත පිරවීම
+        
         const dispName = document.getElementById('disp-name');
         const dispEmail = document.getElementById('disp-email');
         const dispPhone = document.getElementById('disp-phone');
         const dispDob = document.getElementById('disp-dob');
-        const profilePreview = document.getElementById('settings-profile-preview'); // මේ අයිඩී එක HTML එකේ තියෙනවද බලන්න
+        const profilePreview = document.getElementById('settings-profile-preview');
+        const profileId = document.getElementById('settings-profile-id');
 
         if (dispName) dispName.textContent = localStudentData.name;
         if (dispEmail) dispEmail.textContent = localStudentData.email;
         if (dispPhone) dispPhone.textContent = localStudentData.phone;
         if (dispDob) dispDob.textContent = localStudentData.dob;
         if (profilePreview) profilePreview.src = localStudentData.avatar;
+        if (profileId) profileId.textContent = localStudentData.id;
 
     } catch (error) {
         console.error("Error loading student profile data:", error);
@@ -169,16 +198,13 @@ function triggerProfilePictureUpload() {
 function initializeProfilePictureListener() {
     const fileInput = document.getElementById('profile-upload-input');
     const settingsPreview = document.getElementById('settings-profile-preview');
-    const headerImg = document.getElementById('header-profile-img');
 
-    if (fileInput && settingsPreview && headerImg) {
+    if (fileInput && settingsPreview) {
         fileInput.addEventListener('change', function(e) {
             if (e.target.files && e.target.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     settingsPreview.src = event.target.result;
-                    headerImg.src = event.target.result;
-                    alert("Preview updated! (Local only. Database update pending).");
                 }
                 reader.readAsDataURL(e.target.files[0]);
             }
@@ -217,29 +243,67 @@ function cancelProfileAuth() {
     document.getElementById('profile-edit-state').style.display = 'block';
 }
 
-function saveProfileChanges() {
+// === Profile Updates ===
+async function saveProfileChanges() {
     const pw = document.getElementById('auth-password').value;
     if(pw.trim() === '') {
         alert('Please enter your current password to save changes!');
         return;
     }
     
-    // දැනට මේක UI එකේ විතරක් වෙනස් වෙනවා (පස්සේ මේකත් PHP වලින් DB එකට යවමු)
-    document.getElementById('profile-picture-container').classList.remove('editable');
+    const name = document.getElementById('edit-name').value;
+    const email = document.getElementById('edit-email').value;
+    const phone = document.getElementById('edit-phone').value;
+    const dob = document.getElementById('edit-dob').value;
+    const fileInput = document.getElementById('profile-upload-input');
 
-    document.getElementById('disp-name').innerText = document.getElementById('edit-name').value;
-    document.getElementById('disp-email').innerText = document.getElementById('edit-email').value;
-    document.getElementById('disp-phone').innerText = document.getElementById('edit-phone').value;
-    document.getElementById('disp-dob').innerText = document.getElementById('edit-dob').value;
-    document.getElementById('header-profile-name').innerText = document.getElementById('edit-name').value;
+    
+    const formData = new FormData();
+    formData.append('password', pw);
+    formData.append('name', name);
+    formData.append('email', email);
+    formData.append('phone', phone);
+    formData.append('dob', dob);
 
-    alert('Profile updated temporarily! (Database save pending)');
-    document.getElementById('profile-auth-state').style.display = 'none';
-    document.getElementById('profile-view-state').style.display = 'block';
+    if(fileInput.files.length > 0) {
+        formData.append('profile_pic', fileInput.files[0]);
+    }
+
+    try {
+        const response = await fetch('php/update_student_profile.php', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            alert('Profile updated successfully!');
+            
+            
+            document.getElementById('profile-picture-container').classList.remove('editable');
+            document.getElementById('disp-name').innerText = name;
+            document.getElementById('disp-email').innerText = email;
+            document.getElementById('disp-phone').innerText = phone;
+            document.getElementById('disp-dob').innerText = dob;
+            document.getElementById('header-profile-name').innerText = name;
+
+            document.getElementById('profile-auth-state').style.display = 'none';
+            document.getElementById('profile-view-state').style.display = 'block';
+            
+            
+            loadStudentProfileData(); 
+            
+        } else {
+            alert(result.message);
+        }
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        alert('An error occurred while updating the profile. Please try again.');
+    }
 }
 
 // ==========================================
-// 🔑 Change Security Password Logic
+// === Password Change ===
 // ==========================================
 function startPasswordChange() {
     document.getElementById('pw-step-0').style.display = 'none';
@@ -259,7 +323,9 @@ function verifyCurrentPassword() {
     document.getElementById('pw-confirm').value = '';
 }
 
-function confirmUpdatePassword() {
+
+async function confirmUpdatePassword() {
+    const currentPw = document.getElementById('pw-current').value.trim();
     const newPw = document.getElementById('pw-new').value;
     const confirmPw = document.getElementById('pw-confirm').value;
 
@@ -271,8 +337,28 @@ function confirmUpdatePassword() {
         alert("New password and confirm password do not match!");
         return;
     }
-    alert("Password Changed Successfully! (Pending Database Update)");
-    cancelPasswordChange();
+    
+    try {
+        const response = await fetch('php/change_student_password.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                current_password: currentPw,
+                new_password: newPw
+            })
+        });
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            alert(result.message); 
+            cancelPasswordChange(); 
+        } else {
+            alert(result.message); 
+        }
+    } catch (error) {
+        console.error("Error changing password:", error);
+        alert("Something went wrong while updating the password.");
+    }
 }
 
 function cancelPasswordChange() {
@@ -280,8 +366,9 @@ function cancelPasswordChange() {
     document.getElementById('pw-step-2').style.display = 'none';
     document.getElementById('pw-step-0').style.display = 'block';
 }
+
 // =========================================
-// PHASE 2 & 5: STUDENT DYNAMIC LOGIC
+// === Library Data Loading ===
 // =========================================
 
 async function fetchBooks() {
@@ -340,7 +427,11 @@ async function fetchStudentBorrowings() {
             
             if(data.data.length > 0) {
                 let counter = 1;
+                const dueDates = [];
+                
                 data.data.forEach(b => {
+                    dueDates.push(b.due_date);
+                    
                     if(tbody) {
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
@@ -357,9 +448,16 @@ async function fetchStudentBorrowings() {
                     }
                     counter++;
                 });
+                
+                
+                updateCountdownTimer(dueDates);
+                
             } else {
                 if(tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No active borrowings found.</td></tr>';
                 if(list) list.innerHTML = '<p>No books borrowed this week.</p>';
+                
+                
+                updateCountdownTimer([]); 
             }
         }
     } catch(e) {
@@ -374,6 +472,7 @@ async function fetchStudentReservations() {
         const tbody = document.getElementById('student-reservations-body');
         if(!tbody) return;
         tbody.innerHTML = '';
+        
         if(data.status === 'success' && data.data.length > 0) {
             data.data.forEach(r => {
                 const tr = document.createElement('tr');
@@ -389,7 +488,9 @@ async function fetchStudentReservations() {
         } else {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No reservations found.</td></tr>';
         }
-    } catch(e) { console.error(e); }
+    } catch(e) { 
+        console.error("Error fetching reservations", e); 
+    }
 }
 
 async function reserveBook(bookId) {
@@ -401,6 +502,7 @@ async function reserveBook(bookId) {
             body: JSON.stringify({book_id: bookId})
         });
         const res = await response.json();
+        
         if(res.status === 'success') {
             alert(res.message);
             fetchBooks();
@@ -408,7 +510,9 @@ async function reserveBook(bookId) {
         } else {
             alert(res.message);
         }
-    } catch(e) { console.error(e); }
+    } catch(e) { 
+        console.error("Error reserving book", e); 
+    }
 }
 
 async function cancelReservation(resId) {
@@ -420,6 +524,7 @@ async function cancelReservation(resId) {
             body: JSON.stringify({reservation_id: resId})
         });
         const res = await response.json();
+        
         if(res.status === 'success') {
             alert(res.message);
             fetchStudentReservations();
@@ -427,10 +532,12 @@ async function cancelReservation(resId) {
         } else {
             alert(res.message);
         }
-    } catch(e) { console.error(e); }
+    } catch(e) { 
+        console.error("Error cancelling reservation", e); 
+    }
 }
 
-// Hook into showSection for Phase 2 & 5
+
 const originalShowSectionPhase2 = showSection;
 showSection = function(sectionId) {
     if(typeof originalShowSectionPhase2 === 'function') {
@@ -449,7 +556,7 @@ showSection = function(sectionId) {
 }
 
 // =========================================
-// PHASE 3: SEARCH & FILTER LOGIC
+// === Local Catalog Filtering ===
 // =========================================
 window.filterCatalog = function() {
     const searchInput = document.getElementById('catalog-search');

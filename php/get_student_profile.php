@@ -2,7 +2,7 @@
 session_start();
 header('Content-Type: application/json');
 
-// ළමයෙක් ලොග් වෙලා නැත්නම් එළවලා දානවා
+// === Access Control ===
 if (!isset($_SESSION['student_id'])) {
     echo json_encode(["status" => "error", "message" => "Not logged in"]);
     exit();
@@ -12,7 +12,7 @@ require 'db_connect.php';
 
 $studentId = $_SESSION['student_id'];
 
-// ඩේටාබේස් එකෙන් ළමයාගේ විස්තර ගන්නවා
+// === Student Profile Lookup ===
 $sql = "SELECT student_id, full_name, email, phone, dob, profile_pic FROM students WHERE student_id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $studentId);
@@ -29,7 +29,7 @@ if ($result->num_rows === 1) {
             "email" => $user['email'],
             "phone" => $user['phone'],
             "dob" => $user['dob'],
-            "avatar" => $user['profile_pic'] ? $user['profile_pic'] : 'static/chamod.png' // පින්තූරයක් නැත්නම් Default එක දානවා
+            "avatar" => $user['profile_pic'] ? $user['profile_pic'] : 'static/chamod.png' 
         ]
     ]);
 } else {

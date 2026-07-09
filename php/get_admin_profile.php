@@ -1,8 +1,8 @@
 <?php
 session_start();
-header('Content-Type: application/json'); // අපි දත්ත යවන්නේ JSON විදිහටයි
+header('Content-Type: application/json');
 
-// කවුරුහරි ලොග් වෙලා නැතුව මේකට ආවොත් එළවලා දාමු
+// === Access Control ===
 if (!isset($_SESSION['admin_id'])) {
     echo json_encode(["status" => "error", "message" => "Not logged in"]);
     exit();
@@ -12,7 +12,7 @@ require 'db_connect.php';
 
 $adminId = $_SESSION['admin_id'];
 
-// ඩේටාබේස් එකෙන් ඇඩ්මින්ගේ විස්තර ගමු
+// === Profile Lookup ===
 $sql = "SELECT work_id, first_name, last_name, email, role, profile_pic FROM admins WHERE work_id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $adminId);
@@ -21,7 +21,7 @@ $result = $stmt->get_result();
 
 if ($result->num_rows === 1) {
     $user = $result->fetch_assoc();
-    // JS එකට කියවන්න පුළුවන් විදිහට දත්ත ටික පැක් කරලා යවනවා
+    
     echo json_encode([
         "status" => "success",
         "data" => [

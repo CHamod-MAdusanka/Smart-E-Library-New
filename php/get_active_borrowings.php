@@ -21,7 +21,7 @@ if ($result->num_rows > 0) {
     while($row = $result->fetch_assoc()) {
         $days = (int)$row['days_left'];
         $row['overdue_days'] = $days < 0 ? abs($days) : 0;
-        $row['fine'] = $row['overdue_days'] * 10; // 10 LKR per day
+        $row['fine'] = $row['overdue_days'] * 10;
         $borrowings[] = $row;
     }
 }

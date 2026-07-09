@@ -1,5 +1,5 @@
 // =========================================
-// 1. UI, SIDEBAR & SECTION SWITCHING
+// === UI and Section Navigation ===
 // =========================================
 const menuBtn = document.getElementById('menu-btn');
 const sidebar = document.getElementById('sidebar');
@@ -86,7 +86,7 @@ window.addEventListener('click', function(e) {
 
 
 // =========================================
-// 2. DASHBOARD STATS, NOTIFICATIONS & PROFILE
+// === Dashboard Data and Profile ===
 // =========================================
 async function loadUserProfileData() {
     try {
@@ -127,7 +127,6 @@ async function fetchDashboardStats() {
             if(b) b.innerText = "Total Books: " + data.data.total_books;
             if(i) i.innerText = "Books Issued: " + data.data.books_issued;
 
-            // Notification Badge Logic
             const pendingCount = parseInt(data.data.pending_approvals);
             const badge = document.getElementById('notif-badge');
             const notifDropdown = document.getElementById('notification-dropdown');
@@ -156,7 +155,7 @@ async function fetchDashboardStats() {
 }
 
 // =========================================
-// 3. OFFICER MANAGEMENT (ADD & FETCH)
+// === Officer Management ===
 // =========================================
 async function fetchOfficers() {
     try {
@@ -220,7 +219,7 @@ async function createNewOfficer() {
 }
 
 // =========================================
-// 4. STUDENT MANAGEMENT (FIXED PROOF LINK)
+// === Student Management ===
 // =========================================
 async function fetchPendingStudents() {
     try {
@@ -231,7 +230,6 @@ async function fetchPendingStudents() {
         if(data.status === 'success' && data.data.length > 0) {
             data.data.forEach(s => {
                 
-                // Fix for 404 Not Found: Remove '../' if it exists in the database path
                 let correctedPath = s.proof_doc;
                 if (correctedPath && correctedPath.startsWith('../')) {
                     correctedPath = correctedPath.substring(3);
@@ -288,7 +286,7 @@ async function rejectStudent(id) {
 }
 
 // =========================================
-// 5. BOOK MANAGEMENT
+// === Book Management ===
 // =========================================
 function updateBookIdPreview() {
     const cat = document.getElementById('book-category')?.value;
@@ -334,7 +332,7 @@ async function confirmDeleteBook(id, title) {
 }
 
 // =========================================
-// 6. RESERVATIONS & BORROWINGS
+// === Reservations and Borrowings ===
 // =========================================
 async function fetchAdminReservations() {
     try {
@@ -403,7 +401,7 @@ async function issueNewBook() {
 }
 
 // =========================================
-// 8. SETTINGS & PROFILE MANAGEMENT
+// === Settings and Profile ===
 // =========================================
 const profileImgInput = document.getElementById('profile-img-input');
 if(profileImgInput) {
@@ -498,7 +496,7 @@ function closePwSuccess() {
 }
 
 // =========================================
-// 9. LIBRARY PREFERENCES & BACKUP
+// === Preferences and Backup ===
 // =========================================
 async function loadPreferences() {
     try {
@@ -532,7 +530,7 @@ function downloadDatabaseBackup() {
 }
 
 // =========================================
-// 10. DANGER ZONE (OWNERSHIP & DELETE)
+// === Account Management ===
 // =========================================
 async function loadTransferOfficers() {
     try {
@@ -582,7 +580,7 @@ async function executeAccountDeletion() {
 }
 
 // =========================================
-// 11. INITIALIZATION ON LOAD
+// === Initialization ===
 // =========================================
 window.addEventListener('DOMContentLoaded', function() {
     loadUserProfileData();

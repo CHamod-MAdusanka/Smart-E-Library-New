@@ -2,8 +2,7 @@
 header('Content-Type: application/json');
 require_once 'db_connect.php'; 
 
-// admins ටේබල් එකෙන් දත්ත ගන්නවා, හැබැයි 'Head Admin' ව අයින් කරනවා. 
-// ඒ වගේම first_name සහ last_name දෙක එකතු කරලා 'full_name' විදිහට ගන්නවා.
+// === Officer Directory ===
 $sql = "SELECT work_id, CONCAT(first_name, ' ', last_name) AS full_name, email FROM admins WHERE role != 'Head Admin'";
 $result = $conn->query($sql);
 

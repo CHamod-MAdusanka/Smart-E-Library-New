@@ -2,7 +2,7 @@
 session_start();
 header('Content-Type: application/json');
 
-// Both admin and student can cancel
+// === Reservation Management ===
 if (!isset($_SESSION['admin_id']) && !isset($_SESSION['student_id'])) {
     echo json_encode(["status" => "error", "message" => "Unauthorized"]);
     exit();
@@ -27,12 +27,12 @@ if (isset($data['reservation_id'])) {
 
     $conn->begin_transaction();
     try {
-        // Set book back to available
+        
         $stmt = $conn->prepare("UPDATE books SET status='Available' WHERE book_id=?");
         $stmt->bind_param("s", $bookId);
         $stmt->execute();
 
-        // Delete reservation
+        
         $stmt = $conn->prepare("DELETE FROM reservations WHERE id=?");
         $stmt->bind_param("i", $resId);
         $stmt->execute();

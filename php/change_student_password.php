@@ -2,20 +2,20 @@
 session_start();
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['admin_id'])) { 
-    echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); 
+if (!isset($_SESSION['student_id'])) {
+    echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit();
 }
 
 require 'db_connect.php';
 $data = json_decode(file_get_contents('php://input'), true);
 
-$adminId = $_SESSION['admin_id'];
+$studentId = $_SESSION['student_id'];
 $curr = $data['current_password'];
 $new = $data['new_password'];
 
 // === Password Update ===
-$stmt = $conn->prepare("SELECT password FROM admins WHERE work_id = ?");
-$stmt->bind_param("s", $adminId);
+$stmt = $conn->prepare("SELECT password FROM students WHERE student_id = ?");
+$stmt->bind_param("s", $studentId);
 $stmt->execute();
 $user = $stmt->get_result()->fetch_assoc();
 
@@ -25,8 +25,8 @@ if($user['password'] !== $curr) {
 }
 
 
-$update = $conn->prepare("UPDATE admins SET password=? WHERE work_id=?");
-$update->bind_param("ss", $new, $adminId);
+$update = $conn->prepare("UPDATE students SET password=? WHERE student_id=?");
+$update->bind_param("ss", $new, $studentId);
 
 if($update->execute()) {
     echo json_encode(["status" => "success", "message" => "Password changed securely!"]);

@@ -77,6 +77,18 @@ function toggleDropdown(id) {
     if(el) el.classList.toggle('show');
 }
 
+// Dropdown එකෙන් එළියේ ක්ලික් කළාම එය වැසී යාමට අදාළ කේතය
+window.addEventListener('click', function(e) {
+    if (!e.target.closest('.dropdown')) {
+        const notifDropdown = document.getElementById('notification-dropdown');
+        const profDropdown = document.getElementById('profile-dropdown');
+        
+        if (notifDropdown) notifDropdown.classList.remove('show');
+        if (profDropdown) profDropdown.classList.remove('show');
+    }
+});
+
+
 // =========================================
 // 2. DASHBOARD STATS & PROFILE
 // =========================================
@@ -130,7 +142,7 @@ async function fetchOfficers() {
         
         const viewBody = document.getElementById('view-officers-body');
         const removeBody = document.getElementById('remove-officer-body');
-        const activeBody = document.getElementById('active-officers-directory-body'); // අලුත් ID එක
+        const activeBody = document.getElementById('active-officers-directory-body');
         
         if(viewBody) viewBody.innerHTML = '';
         if(removeBody) removeBody.innerHTML = '';
@@ -361,29 +373,10 @@ async function issueNewBook() {
 }
 
 // =========================================
-// 7. INITIALIZATION ON LOAD
-// =========================================
-window.addEventListener('DOMContentLoaded', function() {
-    // ඩෑෂ්බෝඩ් එක ඕපන් වෙද්දිම අවශ්‍ය දේවල් ලෝඩ් කරනවා
-    loadUserProfileData();
-    fetchDashboardStats();
-    
-    // Event listeners
-    const catSel = document.getElementById('book-category');
-    const rackIn = document.getElementById('book-rack');
-    if (catSel) catSel.addEventListener('change', updateBookIdPreview);
-    if (rackIn) rackIn.addEventListener('input', updateBookIdPreview);
-
-    // මුල් පිටුව (Home Section) පෙන්නන්න
-    const homeEl = document.getElementById('home') || document.getElementById('dashboard-home');
-    if (homeEl) showSection(homeEl.id);
-});
-
-// =========================================
 // 8. SETTINGS & PROFILE MANAGEMENT
 // =========================================
 
-// 1. පින්තූරය තෝරපු ගමන් Preview එක වෙනස් කිරීම
+// පින්තූරය තෝරපු ගමන් Preview එක වෙනස් කිරීම
 const profileImgInput = document.getElementById('profile-img-input');
 if(profileImgInput) {
     profileImgInput.addEventListener('change', function(e) {
@@ -397,7 +390,6 @@ if(profileImgInput) {
     });
 }
 
-// 2. Profile Update Modal එක පාලනය කිරීම
 function openProfileAuthModal() {
     document.getElementById('profile-auth-password').value = '';
     document.getElementById('profile-auth-error').style.display = 'none';
@@ -405,7 +397,6 @@ function openProfileAuthModal() {
 }
 function closeProfileAuthModal() { document.getElementById('profile-auth-modal').style.display = 'none'; }
 
-// Profile එකේ දත්ත Database එකට යැවීම
 async function confirmProfileAuth() {
     const pass = document.getElementById('profile-auth-password').value;
     const name = document.getElementById('profile-name-input').value.trim();
@@ -429,7 +420,7 @@ async function confirmProfileAuth() {
         if(result.status === 'success') {
             alert(result.message);
             closeProfileAuthModal();
-            loadUserProfileData(); // Header එකේ නම සහ පින්තූරය අලුත් කරන්න
+            loadUserProfileData(); 
         } else {
             document.getElementById('profile-auth-error').innerText = result.message;
             document.getElementById('profile-auth-error').style.display = 'block';
@@ -437,7 +428,6 @@ async function confirmProfileAuth() {
     } catch(e) { console.error("Profile Update Error:", e); }
 }
 
-// 3. Password මාරු කිරීමේ ක්‍රියාවලිය
 function startPasswordChange() {
     document.getElementById('pw-step-0').style.display = 'none';
     document.getElementById('pw-step-1').style.display = 'block';
@@ -478,3 +468,120 @@ function closePwSuccess() {
     document.getElementById('pw-success-modal').style.display = 'none';
     cancelPasswordChange();
 }
+
+// =========================================
+// 9. LIBRARY PREFERENCES & BACKUP
+// =========================================
+
+async function loadPreferences() {
+    try {
+        const res = await fetch('php/get_preferences.php');
+        const result = await res.json();
+        if(result.status === 'success') {
+            const pDays = document.getElementById('pref-days');
+            const pFine = document.getElementById('pref-fine');
+            if(pDays) pDays.value = result.data.borrowing_period;
+            if(pFine) pFine.value = result.data.late_fine;
+        }
+    } catch(e) { console.error(e); }
+}
+
+async function updatePreferences() {
+    const days = document.getElementById('pref-days').value;
+    const fine = document.getElementById('pref-fine').value;
+    try {
+        const res = await fetch('php/update_preferences.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ borrow_days: days, fine_amount: fine })
+        });
+        const result = await res.json();
+        alert(result.message);
+    } catch(e) { alert("System Error: Could not save preferences."); }
+}
+
+function downloadDatabaseBackup() {
+    window.location.href = 'php/backup_database.php';
+}
+
+// =========================================
+// 10. DANGER ZONE (OWNERSHIP & DELETE)
+// =========================================
+
+// Dropdown එකට Officers ලාව ලෝඩ් කිරීම
+async function loadTransferOfficers() {
+    try {
+        const res = await fetch('php/get_officers.php');
+        const data = await res.json();
+        const select = document.getElementById('transfer-officer-select');
+        if(!select) return;
+        
+        select.innerHTML = '<option value="">-- Choose Active Officer --</option>';
+        if(data.status === 'success' && data.data.length > 0) {
+            data.data.forEach(officer => {
+                select.innerHTML += `<option value="${officer.work_id}">${officer.full_name} (${officer.work_id})</option>`;
+            });
+        }
+    } catch(e) { console.error("Error loading officers for transfer", e); }
+}
+
+// Ownership එක මාරු කිරීම
+async function executeOwnershipTransfer() {
+    const select = document.getElementById('transfer-officer-select');
+    const newHeadId = select.value;
+    
+    if(!newHeadId) {
+        alert("Please select an officer to transfer ownership.");
+        return;
+    }
+    
+    if(confirm("Are you sure you want to transfer ownership? You will lose your Head Admin privileges and will be logged out.")) {
+        try {
+            const res = await fetch('php/transfer_ownership.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ new_head_id: newHeadId })
+            });
+            const result = await res.json();
+            alert(result.message);
+            if(result.status === 'success') {
+                window.location.href = 'index.html'; 
+            }
+        } catch(e) { alert("Error transferring ownership."); }
+    }
+}
+
+// ගිණුම මකා දැමීම
+async function executeAccountDeletion() {
+    if(confirm("DANGER: Are you sure you want to completely delete your account? This action cannot be undone!")) {
+        try {
+            const res = await fetch('php/delete_account.php');
+            const result = await res.json();
+            alert(result.message);
+            if(result.status === 'success') {
+                window.location.href = 'index.html'; 
+            }
+        } catch(e) { alert("Error deleting account."); }
+    }
+}
+
+// =========================================
+// 11. INITIALIZATION ON LOAD (ALL IN ONE)
+// =========================================
+window.addEventListener('DOMContentLoaded', function() {
+    // ඩෑෂ්බෝඩ් එක ඕපන් වෙද්දිම අවශ්‍ය දේවල් ලෝඩ් කරනවා
+    loadUserProfileData();
+    fetchDashboardStats();
+    loadPreferences();
+    loadTransferOfficers();
+    
+    // Event listeners
+    const catSel = document.getElementById('book-category');
+    const rackIn = document.getElementById('book-rack');
+    if (catSel) catSel.addEventListener('change', updateBookIdPreview);
+    if (rackIn) rackIn.addEventListener('input', updateBookIdPreview);
+
+    // මුල් පිටුව (Home Section) පෙන්නන්න
+    const homeEl = document.getElementById('home') || document.getElementById('dashboard-home');
+    if (homeEl) showSection(homeEl.id);
+});

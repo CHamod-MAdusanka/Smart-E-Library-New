@@ -8,7 +8,6 @@ if (menuBtn && sidebar) {
     menuBtn.addEventListener('click', () => sidebar.classList.toggle('closed'));
 }
 
-// ඩෑෂ්බෝඩ් එකේ මෙනු මාරු කරන ප්‍රධාන ෆන්ක්ෂන් එක
 function showSection(sectionId) {
     document.querySelectorAll('.dynamic-section').forEach(section => {
         section.style.display = 'none';
@@ -24,7 +23,6 @@ function showSection(sectionId) {
 
     if (window.innerWidth < 900 && sidebar) sidebar.classList.add('closed');
 
-    // මෙනු එකට අදාළ ඩේටා ටික Database එකෙන් ලෝඩ් කිරීම
     switch(sectionId) {
         case 'home': fetchDashboardStats(); break;
         case 'view-officers': 
@@ -50,7 +48,6 @@ document.querySelectorAll('.menu-item').forEach(item => {
     });
 });
 
-// Global Search
 const globalSearchInput = document.getElementById('global-search');
 if (globalSearchInput) {
     globalSearchInput.addEventListener('input', function() {
@@ -77,7 +74,6 @@ function toggleDropdown(id) {
     if(el) el.classList.toggle('show');
 }
 
-// Dropdown එකෙන් එළියේ ක්ලික් කළාම එය වැසී යාමට අදාළ කේතය
 window.addEventListener('click', function(e) {
     if (!e.target.closest('.dropdown')) {
         const notifDropdown = document.getElementById('notification-dropdown');
@@ -90,7 +86,7 @@ window.addEventListener('click', function(e) {
 
 
 // =========================================
-// 2. DASHBOARD STATS & PROFILE
+// 2. DASHBOARD STATS, NOTIFICATIONS & PROFILE
 // =========================================
 async function loadUserProfileData() {
     try {
@@ -119,15 +115,42 @@ async function fetchDashboardStats() {
     try {
         const response = await fetch('php/get_dashboard_stats.php');
         const data = await response.json();
+        
         if(data.status === 'success') {
             const m = document.getElementById('stat-total-members');
             const p = document.getElementById('stat-pending-approvals');
             const b = document.getElementById('stat-total-books');
             const i = document.getElementById('stat-books-issued');
+            
             if(m) m.innerText = "Total Members: " + data.data.total_members;
             if(p) p.innerText = "Pending Approvals: " + data.data.pending_approvals;
             if(b) b.innerText = "Total Books: " + data.data.total_books;
             if(i) i.innerText = "Books Issued: " + data.data.books_issued;
+
+            // Notification Badge Logic
+            const pendingCount = parseInt(data.data.pending_approvals);
+            const badge = document.getElementById('notif-badge');
+            const notifDropdown = document.getElementById('notification-dropdown');
+
+            if (badge && notifDropdown) {
+                if (pendingCount > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.innerText = pendingCount;
+                    notifDropdown.innerHTML = `
+                        <div class="notif-item" style="cursor: pointer; padding: 10px; border-bottom: 1px solid #eee;" onclick="showSection('approve-registrations')">
+                            <strong style="color: #ef4444;">🔔 ${pendingCount} New Registration(s)!</strong>
+                            <p style="margin: 5px 0 0 0; font-size: 12px; color: #64748b;">You have ${pendingCount} student(s) waiting for verification. Click to review.</p>
+                        </div>
+                    `;
+                } else {
+                    badge.style.display = 'none';
+                    notifDropdown.innerHTML = `
+                        <div class="notif-item" style="text-align:center; padding: 15px; color:#94a3b8;">
+                            <p style="margin: 0; font-size: 13px;">No new notifications right now.</p>
+                        </div>
+                    `;
+                }
+            }
         }
     } catch (e) { console.error("Stats Error:", e); }
 }
@@ -197,7 +220,7 @@ async function createNewOfficer() {
 }
 
 // =========================================
-// 4. STUDENT MANAGEMENT
+// 4. STUDENT MANAGEMENT (FIXED PROOF LINK)
 // =========================================
 async function fetchPendingStudents() {
     try {
@@ -207,7 +230,14 @@ async function fetchPendingStudents() {
         if(!tbody) return; tbody.innerHTML = '';
         if(data.status === 'success' && data.data.length > 0) {
             data.data.forEach(s => {
-                let proofLink = s.proof_doc ? `<a href="${s.proof_doc}" target="_blank" class="btn-secondary">View Proof</a>` : 'No Document';
+                
+                // Fix for 404 Not Found: Remove '../' if it exists in the database path
+                let correctedPath = s.proof_doc;
+                if (correctedPath && correctedPath.startsWith('../')) {
+                    correctedPath = correctedPath.substring(3);
+                }
+
+                let proofLink = correctedPath ? `<a href="${correctedPath}" target="_blank" class="btn-secondary">View Proof</a>` : 'No Document';
                 tbody.innerHTML += `<tr><td>${s.full_name}</td><td>${s.email}</td><td>${proofLink}</td>
                     <td><button class="btn-approve" onclick="approveStudent('${s.student_id}')">✔ Approve</button>
                     <button class="btn-danger" onclick="rejectStudent('${s.student_id}')">✖ Reject</button></td></tr>`;
@@ -375,8 +405,6 @@ async function issueNewBook() {
 // =========================================
 // 8. SETTINGS & PROFILE MANAGEMENT
 // =========================================
-
-// පින්තූරය තෝරපු ගමන් Preview එක වෙනස් කිරීම
 const profileImgInput = document.getElementById('profile-img-input');
 if(profileImgInput) {
     profileImgInput.addEventListener('change', function(e) {
@@ -472,7 +500,6 @@ function closePwSuccess() {
 // =========================================
 // 9. LIBRARY PREFERENCES & BACKUP
 // =========================================
-
 async function loadPreferences() {
     try {
         const res = await fetch('php/get_preferences.php');
@@ -507,8 +534,6 @@ function downloadDatabaseBackup() {
 // =========================================
 // 10. DANGER ZONE (OWNERSHIP & DELETE)
 // =========================================
-
-// Dropdown එකට Officers ලාව ලෝඩ් කිරීම
 async function loadTransferOfficers() {
     try {
         const res = await fetch('php/get_officers.php');
@@ -522,20 +547,16 @@ async function loadTransferOfficers() {
                 select.innerHTML += `<option value="${officer.work_id}">${officer.full_name} (${officer.work_id})</option>`;
             });
         }
-    } catch(e) { console.error("Error loading officers for transfer", e); }
+    } catch(e) { console.error("Error loading officers", e); }
 }
 
-// Ownership එක මාරු කිරීම
 async function executeOwnershipTransfer() {
     const select = document.getElementById('transfer-officer-select');
-    const newHeadId = select.value;
+    const newHeadId = select ? select.value : null;
     
-    if(!newHeadId) {
-        alert("Please select an officer to transfer ownership.");
-        return;
-    }
+    if(!newHeadId) { alert("Please select an officer."); return; }
     
-    if(confirm("Are you sure you want to transfer ownership? You will lose your Head Admin privileges and will be logged out.")) {
+    if(confirm("Are you sure? You will lose Head Admin privileges.")) {
         try {
             const res = await fetch('php/transfer_ownership.php', {
                 method: 'POST',
@@ -544,44 +565,36 @@ async function executeOwnershipTransfer() {
             });
             const result = await res.json();
             alert(result.message);
-            if(result.status === 'success') {
-                window.location.href = 'index.html'; 
-            }
+            if(result.status === 'success') { window.location.href = 'index.html'; }
         } catch(e) { alert("Error transferring ownership."); }
     }
 }
 
-// ගිණුම මකා දැමීම
 async function executeAccountDeletion() {
-    if(confirm("DANGER: Are you sure you want to completely delete your account? This action cannot be undone!")) {
+    if(confirm("DANGER: Are you sure you want to completely delete your account?")) {
         try {
             const res = await fetch('php/delete_account.php');
             const result = await res.json();
             alert(result.message);
-            if(result.status === 'success') {
-                window.location.href = 'index.html'; 
-            }
+            if(result.status === 'success') { window.location.href = 'index.html'; }
         } catch(e) { alert("Error deleting account."); }
     }
 }
 
 // =========================================
-// 11. INITIALIZATION ON LOAD (ALL IN ONE)
+// 11. INITIALIZATION ON LOAD
 // =========================================
 window.addEventListener('DOMContentLoaded', function() {
-    // ඩෑෂ්බෝඩ් එක ඕපන් වෙද්දිම අවශ්‍ය දේවල් ලෝඩ් කරනවා
     loadUserProfileData();
     fetchDashboardStats();
     loadPreferences();
     loadTransferOfficers();
     
-    // Event listeners
     const catSel = document.getElementById('book-category');
     const rackIn = document.getElementById('book-rack');
     if (catSel) catSel.addEventListener('change', updateBookIdPreview);
     if (rackIn) rackIn.addEventListener('input', updateBookIdPreview);
 
-    // මුල් පිටුව (Home Section) පෙන්නන්න
     const homeEl = document.getElementById('home') || document.getElementById('dashboard-home');
     if (homeEl) showSection(homeEl.id);
 });

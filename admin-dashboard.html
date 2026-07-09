@@ -17,26 +17,24 @@
         
         <div class="header-center">
             <div class="search-box">
-                <input id="global-search" type="text" placeholder="Search...">
+                <input id="global-search" type="text" placeholder="Search..." readonly onfocus="this.removeAttribute('readonly');">
                 <span class="search-icon">🔍</span>
             </div>
         </div> 
         
         <div class="header-right">
             <div class="dropdown">
-                <button class="icon-btn" id="bell-btn" onclick="toggleDropdown('notification-dropdown')">🔔<span class="badge">1</span></button>
+                <button class="icon-btn" id="bell-btn" onclick="toggleDropdown('notification-dropdown')">
+                    🔔<span class="badge" id="notif-badge" style="display:none;">0</span>
+                </button>
                 <div id="notification-dropdown" class="dropdown-content notif-dropdown">
-                    <div class="notif-item" onclick="showSection('approve-registrations')">
-                        <strong>New Registration!</strong>
-                        <p>A new student is waiting for identity verification.</p>
                     </div>
-                </div>
             </div>
             
             <div class="dropdown">
                 <button class="profile-btn" onclick="toggleDropdown('profile-dropdown')"> 
                     <img id="header-profile-img" src="static/admin.png" alt="Profile" class="profile-img">
-                    <span id="header-profile-name">Nimali Silva</span>
+                    <span id="header-profile-name">Officer</span>
                 </button>               
                 <div id="profile-dropdown" class="dropdown-content">
                     <a href="#" onclick="showSection('settings'); toggleDropdown('profile-dropdown'); return false;">Profile</a>
@@ -73,6 +71,7 @@
                         <li onclick="showSection('remove-member')"> Remove Student </li>
                     </ul>
                 </li>
+
                 <li class="menu-item">Write RFID ▾
                     <ul class="submenu">
                         <li onclick="showSection('student-rfid')"> Student RFID</li>
@@ -80,12 +79,14 @@
                         <li onclick="showSection('rack-rfid')"> Rack RFID</li>
                     </ul>
                 </li>
+
                 <li class="menu-item">Manage Books ▾
                     <ul class="submenu">
                         <li onclick="showSection('add-book')"> Add New Book</li>
                         <li onclick="showSection('remove-book')"> Remove Book</li>
                     </ul>
                 </li>
+
                 <li class="menu-item" onclick="showSection('book-reservations')">Book Reservations</li>
                 <li class="menu-item" onclick="showSection('return-books')">Returns Books</li>
                 <li class="menu-item settings-item" onclick="showSection('settings')">⚙️ Settings</li>
@@ -94,7 +95,7 @@
         
         <div class="main-content" id="main-display-area">            
             
-            <div id="home" class="dynamic-section section-visible">
+            <div id="home" class="dynamic-section" style="display: block;">
                 <div class="dashboard-cards">
                     <div class="card" id="stat-total-members">Total Members: -</div>
                     <div class="card" id="stat-pending-approvals">Pending Approvals: -</div>
@@ -159,7 +160,7 @@
                                 </tr>
                             </thead>
                             <tbody id="borrowings-body">
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
@@ -182,7 +183,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="all-students-body">
-                                </tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>
@@ -206,7 +207,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="pending-students-body">
-                                </tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>
@@ -222,10 +223,15 @@
                         <div class="table-card">
                             <table class="styled-table">
                                 <thead>
-                                    <tr><th>Student</th><th>Full Name</th><th>Email</th><th>Action</th></tr>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Full Name</th>
+                                        <th>Email</th>
+                                        <th>Action</th>
+                                    </tr>
                                 </thead>
                                 <tbody id="remove-students-body">
-                                </tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>
@@ -243,20 +249,14 @@
                     <div class="table-card">
                         <table class="styled-table">
                             <thead>
-                                <tr><th>Student Name</th><th>Student ID</th><th>Action</th></tr>
+                                <tr>
+                                    <th>Student Name</th>
+                                    <th>Student ID</th>
+                                    <th>Action</th>
+                                </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Saman Perera</td>
-                                    <td>STU-001</td>
-                                    <td><button class="btn-save" onclick="openRfidModal('STU-001', 'Saman Perera', 'Student')">Write RFID</button></td>
-                                </tr>
-                                <tr>
-                                    <td>Kumari Fernando</td>
-                                    <td>STU-002</td>
-                                    <td><button class="btn-save" onclick="openRfidModal('STU-002', 'Kumari Fernando', 'Student')">Write RFID</button></td>
-                                </tr>
-                            </tbody>
+                            <tbody id="rfid-students-body">
+                                </tbody>
                         </table>
                     </div>
                 </div>
@@ -273,10 +273,14 @@
                     <div class="table-card">
                         <table class="styled-table">
                             <thead>
-                                <tr><th>Book Title</th><th>Book ID</th><th>Action</th></tr>
+                                <tr>
+                                    <th>Book Title</th>
+                                    <th>Book ID</th>
+                                    <th>Action</th>
+                                </tr>
                             </thead>
                             <tbody id="books-rfid-body">
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
@@ -304,10 +308,15 @@
                     <div class="table-card">
                         <table class="styled-table" id="racks-table">
                             <thead>
-                                <tr><th>Rack ID</th><th>Rack Name</th><th>RFID Tag UID</th><th>Action</th></tr>
+                                <tr>
+                                    <th>Rack ID</th>
+                                    <th>Rack Name</th>
+                                    <th>RFID Tag UID</th>
+                                    <th>Action</th>
+                                </tr>
                             </thead>
                             <tbody id="racks-body">
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
@@ -364,9 +373,17 @@
                     <div class="table-card">
                         <table class="styled-table" id="book-inventory-table">
                             <thead>
-                                <tr><th>Cover</th><th>Book ID</th><th>Title</th><th>Author</th><th>Category</th><th>Rack</th></tr>
+                                <tr>
+                                    <th>Cover</th>
+                                    <th>Book ID</th>
+                                    <th>Title</th>
+                                    <th>Author</th>
+                                    <th>Category</th>
+                                    <th>Rack</th>
+                                </tr>
                             </thead>
-                            <tbody></tbody>
+                            <tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
@@ -389,9 +406,16 @@
                     <div class="table-card">
                         <table class="styled-table" id="remove-book-table">
                             <thead>
-                                <tr><th>Cover</th><th>Book ID</th><th>Book Title</th><th>Author</th><th>Action</th></tr>
+                                <tr>
+                                    <th>Cover</th>
+                                    <th>Book ID</th>
+                                    <th>Book Title</th>
+                                    <th>Author</th>
+                                    <th>Action</th>
+                                </tr>
                             </thead>
-                            <tbody id="remove-book-body"></tbody>
+                            <tbody id="remove-book-body">
+                                </tbody>
                         </table>
                     </div>
                 </div>
@@ -406,10 +430,16 @@
                         <div class="table-card">
                             <table class="styled-table">
                                 <thead>
-                                    <tr><th>Student Name</th><th>Book Title</th><th>Reserved Date</th><th>Status</th><th>Action</th></tr>
+                                    <tr>
+                                        <th>Student Name</th>
+                                        <th>Book Title</th>
+                                        <th>Reserved Date</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
                                 </thead>
                                 <tbody id="admin-reservations-body">
-                                </tbody>
+                                    </tbody>
                             </table>
                         </div>
                     </div>
@@ -437,7 +467,7 @@
                                 </tr>
                             </thead>
                             <tbody id="returns-body">
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
@@ -447,23 +477,24 @@
                 <div class="section-header">
                     <div><h2 class="section-title">System Settings & Profile</h2></div>
                 </div>
+                
                 <div class="settings-grid">
                     <div class="settings-card">
                         <h3>My Profile Settings</h3>
                         
                         <div style="text-align: center; margin-top: 15px; margin-bottom: 25px;">
                             <img id="settings-profile-preview" src="static/admin.png" alt="Profile Preview" style="width: 110px; height: 110px; border-radius: 50%; border: 4px solid #3b82f6; object-fit: cover; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                            <h4 style="margin: 12px 0 0 0; color: #0f172a; font-size: 16px; font-weight: 700;">System ID: <span id="settings-profile-id" style="color: #64748b; font-weight: normal;">EMP001</span></h4>
+                            <h4 style="margin: 12px 0 0 0; color: #0f172a; font-size: 16px; font-weight: 700;">System ID: <span id="settings-profile-id" style="color: #64748b; font-weight: normal;">-</span></h4>
                         </div>
 
                         <div class="form-style" style="margin-top: 15px;">
                             <div style="margin-bottom: 12px;">
                                 <label style="font-weight:bold; display:block; margin-bottom:5px;">Change Full Name</label>
-                                <input type="text" id="profile-name-input" class="filter-input" style="max-width:100%; width:90%;" value="Nimali Silva">
+                                <input type="text" id="profile-name-input" class="filter-input" style="max-width:100%; width:90%;" value="">
                             </div>
                             <div style="margin-bottom: 12px;">
                                 <label style="font-weight:bold; display:block; margin-bottom:5px;">Email Address</label>
-                                <input type="email" id="profile-email-input" class="filter-input" style="max-width:100%; width:90%;" value="nimali@elibrary.com">
+                                <input type="email" id="profile-email-input" class="filter-input" style="max-width:100%; width:90%;" value="">
                             </div>
                             <div style="margin-bottom: 15px;">
                                 <label style="font-weight:bold; display:block; margin-bottom:5px;">Update Profile Avatar</label>
@@ -481,7 +512,11 @@
 
                             <div id="pw-step-1" style="display: none; background: #f8fafc; padding: 18px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 10px;">
                                 <label style="font-weight:bold; display:block; margin-bottom:8px; color: #0f172a;">Step 1: Enter Current Password</label>
-                                <input type="password" id="pw-current" class="filter-input" style="max-width:100%; width:100%; margin-bottom: 10px; box-sizing: border-box;" placeholder="Type your active password">
+                                
+                                <input type="text" name="fake_username_1" style="display:none;" aria-hidden="true" autocomplete="username">
+                                
+                                <input type="password" id="pw-current" class="filter-input" style="max-width:100%; width:100%; margin-bottom: 10px; box-sizing: border-box;" placeholder="Type your active password" autocomplete="new-password">
+                                
                                 <div style="text-align: right; width: 100%; margin-bottom: 15px;">
                                     <a href="forgot-password.html" style="color: #3b82f6; font-size: 13px; text-decoration: none; font-weight: 700;">Forgot Password?</a>
                                 </div>
@@ -493,15 +528,19 @@
 
                             <div id="pw-step-2" style="display: none; background: #f8fafc; padding: 18px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 10px;">
                                 <label style="font-weight:bold; display:block; margin-bottom:8px; color: #0f172a;">Step 2: Enter New Password</label>
-                                <input type="password" id="pw-new" class="filter-input" style="max-width:100%; width:100%; margin-bottom: 12px; box-sizing: border-box;" placeholder="Create new password">
+                                
+                                <input type="text" name="fake_username_2" style="display:none;" aria-hidden="true" autocomplete="username">
+                                
+                                <input type="password" id="pw-new" class="filter-input" style="max-width:100%; width:100%; margin-bottom: 12px; box-sizing: border-box;" placeholder="Create new password" autocomplete="new-password">
+                                
                                 <label style="font-weight:bold; display:block; margin-bottom:8px; color: #0f172a;">Confirm New Password</label>
-                                <input type="password" id="pw-confirm" class="filter-input" style="max-width:100%; width:100%; margin-bottom: 20px; box-sizing: border-box;" placeholder="Retype new password">
+                                <input type="password" id="pw-confirm" class="filter-input" style="max-width:100%; width:100%; margin-bottom: 20px; box-sizing: border-box;" placeholder="Retype new password" autocomplete="new-password">
+                                
                                 <div style="display: flex; gap: 10px;">
                                     <button class="btn-save" style="background: #10b981; width: 50%; padding: 10px;" onclick="confirmUpdatePassword()">Confirm</button>
                                     <button class="btn-cancel" style="width: 50%; padding: 10px;" onclick="cancelPasswordChange()">Cancel</button>
                                 </div>
                             </div>
-
                         </div>
                     </div>
 
@@ -510,13 +549,13 @@
                         <div class="form-style" style="margin-top: 15px;">
                             <div style="margin-bottom: 12px;">
                                 <label style="font-weight:bold; display:block; margin-bottom:5px;">Borrowing Period (Days)</label>
-                                <input type="number" id="pref-days" class="filter-input" style="max-width:100%; width:90%;" value="14" onchange="renderBorrowings(); renderReturns();">
+                                <input type="number" id="pref-days" class="filter-input" style="max-width:100%; width:90%;">
                             </div>
                             <div style="margin-bottom: 15px;">
                                 <label style="font-weight:bold; display:block; margin-bottom:5px;">Late Fine Amount (Per Day - LKR)</label>
-                                <input type="number" id="pref-fine" class="filter-input" style="max-width:100%; width:90%;" value="20" onchange="renderBorrowings(); renderReturns();">
+                                <input type="number" id="pref-fine" class="filter-input" style="max-width:100%; width:90%;">
                             </div>
-                            <button class="btn-save" onclick="alert('Library preferences updated successfully!')">Save Preferences</button>
+                            <button class="btn-save" onclick="updatePreferences()">Save Preferences</button>
                         </div>
                     </div>
 
@@ -571,7 +610,10 @@
         <div class="modal-content">
             <h3>Security Verification</h3>
             <p>Enter current password to save profile adjustments.</p>
-            <input id="profile-auth-password" class="modal-input" type="password" placeholder="Current Password">
+            
+            <input type="text" name="fake_username_auth" style="display:none;" aria-hidden="true" autocomplete="username">
+            <input id="profile-auth-password" class="modal-input" type="password" placeholder="Current Password" autocomplete="new-password">
+            
             <p id="profile-auth-error" style="color: #ef4444; font-size: 12px; margin-top: 8px; display: none; font-weight: bold;">Incorrect password! Try again.</p>
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeProfileAuthModal()">Cancel</button>
@@ -589,6 +631,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=7"></script>
+    <script src="js/app.js?v=10"></script>
 </body>
-</html
+</html>

@@ -261,8 +261,8 @@ async function fetchAllStudents() {
                 if(remTb) remTb.innerHTML += tr + `<td><button class="btn-danger" onclick="rejectStudent('${s.student_id}')">Remove</button></td></tr>`;
             });
         } else {
-             if(allTb) allTb.innerHTML = '<tr><td colspan="4" style="text-align:center;">No students found.</td></tr>';
-             if(remTb) remTb.innerHTML = '<tr><td colspan="4" style="text-align:center;">No students found.</td></tr>';
+            if(allTb) allTb.innerHTML = '<tr><td colspan="4" style="text-align:center;">No students found.</td></tr>';
+            if(remTb) remTb.innerHTML = '<tr><td colspan="4" style="text-align:center;">No students found.</td></tr>';
         }
     } catch (e) {}
 }

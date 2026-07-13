@@ -18,7 +18,7 @@
         <div class="login-box">
             <h2>Student Login</h2>
             
-            <form id="studentLoginForm" action="php/student_auth.php" method="POST">
+            <form id="studentLoginForm" action="php/auth_controller.php?action=student_login" method="POST">
                 
                 <div id="step-1">
                     <input type="text" name="studentId" id="studentId" placeholder="Student ID" oninput="this.value = this.value.replace(/[^a-zA-Z0-9\-]/g, '')" onpaste="return false;" ondrop="return false;" autocomplete="off" required>
@@ -71,8 +71,6 @@
             const stuId = document.getElementById('studentId').value.trim().toUpperCase();
             window.location.href = "forgot-password.html?id=" + encodeURIComponent(stuId);
         }
-
-        /* === Authentication Handling === */
     </script>
 </body>
 </html>

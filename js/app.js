@@ -1,12 +1,32 @@
 // =========================================
 // === UI and Section Navigation ===
 // =========================================
-const menuBtn = document.getElementById('menu-btn');
-const sidebar = document.getElementById('sidebar');
+document.addEventListener('DOMContentLoaded', function() {
+    const menuBtn = document.getElementById('menu-btn');
+    const sidebar = document.getElementById('sidebar');
 
-if (menuBtn && sidebar) {
-    menuBtn.addEventListener('click', () => sidebar.classList.toggle('closed'));
-}
+    if (menuBtn && sidebar) {
+        menuBtn.addEventListener('click', () => sidebar.classList.toggle('closed'));
+    }
+
+    loadUserProfileData();
+    fetchDashboardStats();
+    loadPreferences();
+    loadTransferOfficers();
+    
+    // Add Event Listeners for New Books
+    const catSel = document.getElementById('book-category');
+    const rackIn = document.getElementById('book-rack');
+    if (catSel) catSel.addEventListener('change', updateBookIdPreview);
+    if (rackIn) rackIn.addEventListener('input', updateBookIdPreview);
+    
+    // Bind the missing Add Book Function!
+    const addBookBtn = document.getElementById('book-add-button');
+    if(addBookBtn) addBookBtn.addEventListener('click', addNewBook);
+
+    const homeEl = document.getElementById('home');
+    if (homeEl) showSection('home');
+});
 
 function showSection(sectionId) {
     document.querySelectorAll('.dynamic-section').forEach(section => {
@@ -21,8 +41,10 @@ function showSection(sectionId) {
     if (notifDropdown) notifDropdown.classList.remove('show');
     if (profDropdown) profDropdown.classList.remove('show');
 
+    const sidebar = document.getElementById('sidebar');
     if (window.innerWidth < 900 && sidebar) sidebar.classList.add('closed');
 
+    // Dynamic fetch mapping
     switch(sectionId) {
         case 'home': fetchDashboardStats(); break;
         case 'view-officers': 
@@ -81,7 +103,6 @@ window.addEventListener('click', function(e) {
     if (!e.target.closest('.dropdown')) {
         const notifDropdown = document.getElementById('notification-dropdown');
         const profDropdown = document.getElementById('profile-dropdown');
-        
         if (notifDropdown) notifDropdown.classList.remove('show');
         if (profDropdown) profDropdown.classList.remove('show');
     }
@@ -92,42 +113,30 @@ window.addEventListener('click', function(e) {
 // =========================================
 async function loadUserProfileData() {
     try {
-        const response = await fetch('php/new_php/user_controller.php?action=get_admin_profile');
+        const response = await fetch('php/user_controller.php?action=get_admin_profile');
         const result = await response.json();
         if (result.status === "success") {
             const data = result.data;
-            const hName = document.getElementById('header-profile-name');
-            const hImg = document.getElementById('header-profile-img');
-            const sName = document.getElementById('profile-name-input');
-            const sEmail = document.getElementById('profile-email-input');
-            const sId = document.getElementById('settings-profile-id');
-            const sPreview = document.getElementById('settings-profile-preview');
-
-            if (hName) hName.textContent = data.name;
-            if (hImg && data.avatar) hImg.src = data.avatar;
-            if (sName) sName.value = data.name;
-            if (sEmail) sEmail.value = data.email;
-            if (sId) sId.textContent = data.id;
-            if (sPreview && data.avatar) sPreview.src = data.avatar;
+            document.getElementById('header-profile-name').textContent = data.name;
+            document.getElementById('header-profile-img').src = data.avatar;
+            document.getElementById('profile-name-input').value = data.name;
+            document.getElementById('profile-email-input').value = data.email;
+            document.getElementById('settings-profile-id').textContent = data.id;
+            document.getElementById('settings-profile-preview').src = data.avatar;
         }
     } catch (error) { console.error("Profile Load Error:", error); }
 }
 
 async function fetchDashboardStats() {
     try {
-        const response = await fetch('php/new_php/system_controller.php?action=get_dashboard_stats');
+        const response = await fetch('php/system_controller.php?action=get_dashboard_stats');
         const data = await response.json();
         
         if(data.status === 'success') {
-            const m = document.getElementById('stat-total-members');
-            const p = document.getElementById('stat-pending-approvals');
-            const b = document.getElementById('stat-total-books');
-            const i = document.getElementById('stat-books-issued');
-            
-            if(m) m.innerText = "Total Members: " + data.data.total_members;
-            if(p) p.innerText = "Pending Approvals: " + data.data.pending_approvals;
-            if(b) b.innerText = "Total Books: " + data.data.total_books;
-            if(i) i.innerText = "Books Issued: " + data.data.books_issued;
+            document.getElementById('stat-total-members').innerText = "Total Members: " + data.data.total_members;
+            document.getElementById('stat-pending-approvals').innerText = "Pending Approvals: " + data.data.pending_approvals;
+            document.getElementById('stat-total-books').innerText = "Total Books: " + data.data.total_books;
+            document.getElementById('stat-books-issued').innerText = "Books Issued: " + data.data.books_issued;
 
             const pendingCount = parseInt(data.data.pending_approvals);
             const badge = document.getElementById('notif-badge');
@@ -153,7 +162,7 @@ async function fetchDashboardStats() {
                 }
             }
         }
-    } catch (e) { console.error("Stats Error:", e); }
+    } catch (e) {}
 }
 
 // =========================================
@@ -161,7 +170,7 @@ async function fetchDashboardStats() {
 // =========================================
 async function fetchOfficers() {
     try {
-        const response = await fetch('php/new_php/user_controller.php?action=get_officers');
+        const response = await fetch('php/user_controller.php?action=get_officers');
         const data = await response.json();
         
         const viewBody = document.getElementById('view-officers-body');
@@ -185,7 +194,7 @@ async function fetchOfficers() {
             if(removeBody) removeBody.innerHTML = noData;
             if(activeBody) activeBody.innerHTML = noData;
         }
-    } catch (e) { console.error("Officers Error:", e); }
+    } catch (e) {}
 }
 
 async function createNewOfficer() {
@@ -200,22 +209,20 @@ async function createNewOfficer() {
     }
 
     try {
-        const response = await fetch('php/new_php/user_controller.php?action=add_officer', {
+        const response = await fetch('php/user_controller.php?action=add_officer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ work_id: workId, first_name: fName, last_name: lName, email: email, password: password })
         });
         const result = await response.json();
+        alert(result.message);
         if (result.status === 'success') {
-            alert(result.message);
             document.getElementById('add-officer-fname').value = '';
             document.getElementById('add-officer-lname').value = '';
             document.getElementById('add-officer-email').value = '';
             document.getElementById('add-officer-id').value = '';
             document.getElementById('add-officer-password').value = '';
             fetchOfficers();
-        } else {
-            alert("Error: " + result.message);
         }
     } catch (error) { alert("System Error."); }
 }
@@ -225,7 +232,7 @@ async function createNewOfficer() {
 // =========================================
 async function fetchPendingStudents() {
     try {
-        const res = await fetch('php/new_php/user_controller.php?action=get_pending_students');
+        const res = await fetch('php/user_controller.php?action=get_pending_students');
         const data = await res.json();
         const tbody = document.getElementById('pending-students-body');
         if(!tbody) return; tbody.innerHTML = '';
@@ -235,7 +242,6 @@ async function fetchPendingStudents() {
                 if (correctedPath && correctedPath.startsWith('../')) {
                     correctedPath = correctedPath.substring(3);
                 }
-
                 let proofLink = correctedPath ? `<a href="${correctedPath}" target="_blank" class="btn-secondary">View Proof</a>` : 'No Document';
                 tbody.innerHTML += `<tr><td>${s.full_name}</td><td>${s.email}</td><td>${proofLink}</td>
                     <td><button class="btn-approve" onclick="approveStudent('${s.student_id}')">✔ Approve</button>
@@ -247,7 +253,7 @@ async function fetchPendingStudents() {
 
 async function fetchAllStudents() {
     try {
-        const res = await fetch('php/new_php/user_controller.php?action=get_all_students');
+        const res = await fetch('php/user_controller.php?action=get_all_students');
         const data = await res.json();
         const allTb = document.getElementById('all-students-body');
         const remTb = document.getElementById('remove-students-body');
@@ -271,7 +277,7 @@ async function fetchAllStudents() {
 async function approveStudent(id) {
     if(!confirm("Approve student " + id + "?")) return;
     try {
-        const res = await fetch('php/new_php/user_controller.php?action=approve_student', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: id }) });
+        const res = await fetch('php/user_controller.php?action=approve_student', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: id }) });
         const result = await res.json(); alert(result.message);
         if(result.status === 'success') { fetchPendingStudents(); fetchAllStudents(); fetchDashboardStats(); }
     } catch(e) {}
@@ -280,7 +286,7 @@ async function approveStudent(id) {
 async function rejectStudent(id) {
     if(!confirm("Remove student " + id + "?")) return;
     try {
-        const res = await fetch('php/new_php/user_controller.php?action=remove_student', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: id }) });
+        const res = await fetch('php/user_controller.php?action=remove_student', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: id }) });
         const result = await res.json(); alert(result.message);
         if(result.status === 'success') { fetchPendingStudents(); fetchAllStudents(); fetchDashboardStats(); }
     } catch(e) {}
@@ -298,9 +304,65 @@ function updateBookIdPreview() {
     }
 }
 
+// --- MISSING FUNCTION ADDED HERE ---
+async function addNewBook() {
+    const title = document.getElementById('book-title').value.trim();
+    const author = document.getElementById('book-author').value.trim();
+    const category = document.getElementById('book-category').value;
+    const bookId = document.getElementById('book-id').value;
+    const coverInput = document.getElementById('book-cover');
+
+    if (!title || !author || !category || !bookId) {
+        alert("Please fill in all book details (Title, Author, Category, Rack).");
+        return;
+    }
+
+    let coverBase64 = null;
+    if (coverInput.files && coverInput.files[0]) {
+        const file = coverInput.files[0];
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            coverBase64 = e.target.result;
+            executeAddBookApi(bookId, title, author, category, coverBase64);
+        };
+        reader.readAsDataURL(file);
+    } else {
+        executeAddBookApi(bookId, title, author, category, null);
+    }
+}
+
+async function executeAddBookApi(bookId, title, author, category, coverBase64) {
+    try {
+        const response = await fetch('php/library_controller.php?action=add_book', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                book_id: bookId,
+                title: title,
+                author: author,
+                category: category,
+                cover_img: coverBase64
+            })
+        });
+        const result = await response.json();
+        alert(result.message);
+        
+        if (result.status === 'success') {
+            document.getElementById('book-title').value = '';
+            document.getElementById('book-author').value = '';
+            document.getElementById('book-category').value = '';
+            document.getElementById('book-rack').value = '';
+            document.getElementById('book-id').value = '';
+            document.getElementById('book-cover').value = '';
+            fetchAdminBooks();
+            fetchDashboardStats();
+        }
+    } catch(e) { alert("Error adding book to database."); }
+}
+
 async function fetchAdminBooks() {
     try {
-        const response = await fetch('php/new_php/library_controller.php?action=get_books');
+        const response = await fetch('php/library_controller.php?action=get_books');
         const data = await response.json();
         
         const removeBody = document.getElementById('remove-book-body');
@@ -322,9 +384,9 @@ async function fetchAdminBooks() {
 async function confirmDeleteBook(id, title) {
     if (confirm(`Are you sure you want to delete:\n"${title}"?`)) {
         try {
-            const response = await fetch('php/new_php/library_controller.php?action=remove_book', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ book_id: id }) });
+            const response = await fetch('php/library_controller.php?action=remove_book', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ book_id: id }) });
             const result = await response.json(); alert(result.message);
-            if (result.status === 'success') fetchAdminBooks(); 
+            if (result.status === 'success') { fetchAdminBooks(); fetchDashboardStats(); }
         } catch (error) {}
     }
 }
@@ -334,7 +396,7 @@ async function confirmDeleteBook(id, title) {
 // =========================================
 async function fetchAdminReservations() {
     try {
-        const response = await fetch('php/new_php/library_controller.php?action=get_admin_reservations');
+        const response = await fetch('php/library_controller.php?action=get_admin_reservations');
         const data = await response.json();
         const tbody = document.getElementById('admin-reservations-body');
         if(!tbody) return; tbody.innerHTML = '';
@@ -351,16 +413,16 @@ async function fetchAdminReservations() {
 async function approveReservation(resId) {
     if(!confirm('Approve this reservation?')) return;
     try {
-        const response = await fetch('php/new_php/library_controller.php?action=approve_reservation', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({reservation_id: resId}) });
+        const response = await fetch('php/library_controller.php?action=approve_reservation', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({reservation_id: resId}) });
         const res = await response.json(); alert(res.message);
-        if(res.status === 'success') fetchAdminReservations();
+        if(res.status === 'success') { fetchAdminReservations(); fetchDashboardStats(); fetchActiveBorrowings(); }
     } catch(e) {}
 }
 
 async function cancelAdminReservation(resId) {
     if(!confirm('Cancel this reservation?')) return;
     try {
-        const response = await fetch('php/new_php/library_controller.php?action=cancel_reservation', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({reservation_id: resId}) });
+        const response = await fetch('php/library_controller.php?action=cancel_reservation', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({reservation_id: resId}) });
         const res = await response.json(); alert(res.message);
         if(res.status === 'success') fetchAdminReservations();
     } catch(e) {}
@@ -368,7 +430,7 @@ async function cancelAdminReservation(resId) {
 
 async function fetchActiveBorrowings() {
     try {
-        const response = await fetch('php/new_php/library_controller.php?action=get_active_borrowings');
+        const response = await fetch('php/library_controller.php?action=get_active_borrowings');
         const data = await response.json();
         const tbody = document.getElementById('borrowings-body');
         if(!tbody) return; tbody.innerHTML = '';
@@ -388,7 +450,7 @@ async function issueNewBook() {
     if(!studentId || !bookId) { alert("Please enter both IDs."); return; }
     
     try {
-        const response = await fetch('php/new_php/library_controller.php?action=issue_book', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: studentId, book_id: bookId }) });
+        const response = await fetch('php/library_controller.php?action=issue_book', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: studentId, book_id: bookId }) });
         const result = await response.json(); alert(result.message);
         if(result.status === 'success') {
             document.getElementById('issue-student-id').value = '';
@@ -403,11 +465,10 @@ async function issueNewBook() {
 // =========================================
 async function fetchScanRequests() {
     try {
-        const response = await fetch('php/new_php/library_controller.php?action=get_scan_requests');
+        const response = await fetch('php/library_controller.php?action=get_scan_requests');
         const data = await response.json();
         const tbody = document.getElementById('admin-scan-requests-body');
-        if(!tbody) return; 
-        tbody.innerHTML = '';
+        if(!tbody) return; tbody.innerHTML = '';
         
         if(data.status === 'success' && data.data.length > 0) {
             data.data.forEach(r => {
@@ -420,32 +481,20 @@ async function fetchScanRequests() {
                     <td>${actionBtns}</td>
                 </tr>`;
             });
-        } else { 
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No scan requests found.</td></tr>'; 
-        }
-    } catch(e) {
-        console.error("Error fetching scan requests", e);
-    }
+        } else { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No scan requests found.</td></tr>'; }
+    } catch(e) {}
 }
 
 async function approveScanRequest(reqId) {
     if(!confirm('Are you sure you want to approve this request and issue the book for 14 days?')) return;
     try {
-        const response = await fetch('php/new_php/library_controller.php?action=approve_scan_request', { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({request_id: reqId}) 
+        const response = await fetch('php/library_controller.php?action=approve_scan_request', { 
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({request_id: reqId}) 
         });
         const res = await response.json(); 
         alert(res.message);
-        if(res.status === 'success') { 
-            fetchScanRequests(); 
-            fetchActiveBorrowings();
-            fetchDashboardStats(); 
-        }
-    } catch(e) {
-        console.error("Error approving scan request", e);
-    }
+        if(res.status === 'success') { fetchScanRequests(); fetchActiveBorrowings(); fetchDashboardStats(); }
+    } catch(e) {}
 }
 
 // =========================================
@@ -479,27 +528,23 @@ async function confirmProfileAuth() {
 
     if(!pass) {
         document.getElementById('profile-auth-error').innerText = "Please enter your password!";
-        document.getElementById('profile-auth-error').style.display = 'block';
-        return;
+        document.getElementById('profile-auth-error').style.display = 'block'; return;
     }
 
     try {
-        const res = await fetch('php/new_php/user_controller.php?action=update_admin_profile', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+        const res = await fetch('php/user_controller.php?action=update_admin_profile', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ password: pass, full_name: name, email: email, profile_pic: imgSrc })
         });
         const result = await res.json();
         
         if(result.status === 'success') {
-            alert(result.message);
-            closeProfileAuthModal();
-            loadUserProfileData(); 
+            alert(result.message); closeProfileAuthModal(); loadUserProfileData(); 
         } else {
             document.getElementById('profile-auth-error').innerText = result.message;
             document.getElementById('profile-auth-error').style.display = 'block';
         }
-    } catch(e) { console.error("Profile Update Error:", e); }
+    } catch(e) {}
 }
 
 function startPasswordChange() {
@@ -525,30 +570,23 @@ async function confirmUpdatePassword() {
     if(!newPw || newPw !== confPw) return alert("New passwords do not match!");
 
     try {
-        const res = await fetch('php/new_php/auth_controller.php?action=change_admin_password', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+        const res = await fetch('php/auth_controller.php?action=change_admin_password', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ current_password: curr, new_password: newPw })
         });
         const result = await res.json();
-        if(result.status === 'success') {
-            document.getElementById('pw-success-modal').style.display = 'flex';
-        } else {
-            alert(result.message);
-        }
-    } catch(e) { console.error("Password Update Error:", e); }
+        if(result.status === 'success') { document.getElementById('pw-success-modal').style.display = 'flex'; } 
+        else { alert(result.message); }
+    } catch(e) {}
 }
-function closePwSuccess() {
-    document.getElementById('pw-success-modal').style.display = 'none';
-    cancelPasswordChange();
-}
+function closePwSuccess() { document.getElementById('pw-success-modal').style.display = 'none'; cancelPasswordChange(); }
 
 // =========================================
 // === Preferences and Backup ===
 // =========================================
 async function loadPreferences() {
     try {
-        const res = await fetch('php/new_php/system_controller.php?action=get_preferences');
+        const res = await fetch('php/system_controller.php?action=get_preferences');
         const result = await res.json();
         if(result.status === 'success') {
             const pDays = document.getElementById('pref-days');
@@ -556,44 +594,39 @@ async function loadPreferences() {
             if(pDays) pDays.value = result.data.borrowing_period;
             if(pFine) pFine.value = result.data.late_fine;
         }
-    } catch(e) { console.error(e); }
+    } catch(e) {}
 }
 
 async function updatePreferences() {
     const days = document.getElementById('pref-days').value;
     const fine = document.getElementById('pref-fine').value;
     try {
-        const res = await fetch('php/new_php/system_controller.php?action=update_preferences', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+        const res = await fetch('php/system_controller.php?action=update_preferences', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ borrow_days: days, fine_amount: fine })
         });
-        const result = await res.json();
-        alert(result.message);
+        const result = await res.json(); alert(result.message);
     } catch(e) { alert("System Error: Could not save preferences."); }
 }
 
-function downloadDatabaseBackup() {
-    window.location.href = 'php/new_php/backup_database.php';
-}
+function downloadDatabaseBackup() { window.location.href = 'php/backup_database.php'; }
 
 // =========================================
 // === Account Management ===
 // =========================================
 async function loadTransferOfficers() {
     try {
-        const res = await fetch('php/new_php/user_controller.php?action=get_officers');
+        const res = await fetch('php/user_controller.php?action=get_officers');
         const data = await res.json();
         const select = document.getElementById('transfer-officer-select');
         if(!select) return;
-        
         select.innerHTML = '<option value="">-- Choose Active Officer --</option>';
         if(data.status === 'success' && data.data.length > 0) {
             data.data.forEach(officer => {
                 select.innerHTML += `<option value="${officer.work_id}">${officer.full_name} (${officer.work_id})</option>`;
             });
         }
-    } catch(e) { console.error("Error loading officers", e); }
+    } catch(e) {}
 }
 
 async function executeOwnershipTransfer() {
@@ -604,13 +637,10 @@ async function executeOwnershipTransfer() {
     
     if(confirm("Are you sure? You will lose Head Admin privileges.")) {
         try {
-            const res = await fetch('php/new_php/user_controller.php?action=transfer_ownership', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ new_head_id: newHeadId })
+            const res = await fetch('php/user_controller.php?action=transfer_ownership', {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ new_head_id: newHeadId })
             });
-            const result = await res.json();
-            alert(result.message);
+            const result = await res.json(); alert(result.message);
             if(result.status === 'success') { window.location.href = 'index.html'; }
         } catch(e) { alert("Error transferring ownership."); }
     }
@@ -619,28 +649,9 @@ async function executeOwnershipTransfer() {
 async function executeAccountDeletion() {
     if(confirm("DANGER: Are you sure you want to completely delete your account?")) {
         try {
-            const res = await fetch('php/new_php/user_controller.php?action=delete_account');
-            const result = await res.json();
-            alert(result.message);
+            const res = await fetch('php/user_controller.php?action=delete_account');
+            const result = await res.json(); alert(result.message);
             if(result.status === 'success') { window.location.href = 'index.html'; }
         } catch(e) { alert("Error deleting account."); }
     }
 }
-
-// =========================================
-// === Initialization ===
-// =========================================
-window.addEventListener('DOMContentLoaded', function() {
-    loadUserProfileData();
-    fetchDashboardStats();
-    loadPreferences();
-    loadTransferOfficers();
-    
-    const catSel = document.getElementById('book-category');
-    const rackIn = document.getElementById('book-rack');
-    if (catSel) catSel.addEventListener('change', updateBookIdPreview);
-    if (rackIn) rackIn.addEventListener('input', updateBookIdPreview);
-
-    const homeEl = document.getElementById('home') || document.getElementById('dashboard-home');
-    if (homeEl) showSection(homeEl.id);
-});

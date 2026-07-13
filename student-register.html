@@ -46,7 +46,7 @@
             <h2 style="color: var(--bg-slate); margin-bottom: 5px;">Create Account</h2>
             <p style="color: #64748B; font-size: 14px; margin-bottom: 25px;">Register to access the Smart E-Library</p>
             
-            <form id="studentRegisterForm" action="php/register_student.php" method="POST" enctype="multipart/form-data" onsubmit="return validateRegistration()">
+            <form id="studentRegisterForm" action="php/auth_controller.php?action=register_student" method="POST" enctype="multipart/form-data" onsubmit="return validateRegistration()">
                 
                 <div style="text-align: left;">
                     <label style="font-size: 13px; font-weight: bold; color: var(--bg-slate); display: block; margin-bottom: 5px;">First Name</label>

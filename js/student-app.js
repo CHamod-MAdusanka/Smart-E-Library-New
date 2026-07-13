@@ -2,7 +2,6 @@
 // === Navigation and Layout ===
 // ==========================================
 document.addEventListener('DOMContentLoaded', function() {
-    
     const menuBtn = document.getElementById('menu-btn');
     const container = document.querySelector('.dashboard-container');
 
@@ -15,6 +14,14 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeSearchAndFilters();
     initializeProfilePictureListener();
     loadStudentProfileData();
+
+    // Load initial data
+    fetchStudentBorrowings();
+    fetchBooks(); 
+    fetchStudentReservations();
+
+    const homeEl = document.getElementById('home');
+    if (homeEl) showSection('home');
 });
 
 function showSection(sectionId) {
@@ -25,6 +32,17 @@ function showSection(sectionId) {
     document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
     if(window.event && window.event.currentTarget) {
         window.event.currentTarget.classList.add('active');
+    }
+
+    // Fetch data dynamically based on the active section
+    if(sectionId === 'home') {
+        fetchStudentBorrowings();
+    } else if (sectionId === 'browse-books') {
+        fetchBooks();
+    } else if (sectionId === 'my-borrowings') {
+        fetchStudentBorrowings();
+    } else if (sectionId === 'my-reservations') {
+        fetchStudentReservations();
     }
 }
 
@@ -95,22 +113,19 @@ function updateCountdownTimer(dueDates) {
 // ==========================================
 function initializeSearchAndFilters() {
     const searchInput = document.getElementById('global-search');
+    const catalogSearch = document.getElementById('catalog-search');
+
     if (searchInput) {
         searchInput.addEventListener('input', function(e) {
             const searchTerm = e.target.value.toLowerCase();
-            const bookCards = document.querySelectorAll('.book-card');
             if(searchTerm.length > 0) { showSection('browse-books'); }
-            
-            bookCards.forEach(card => {
-                const title = card.querySelector('.book-title').textContent.toLowerCase();
-                const author = card.querySelector('.author').textContent.toLowerCase();
-                if (title.includes(searchTerm) || author.includes(searchTerm)) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
+            if(catalogSearch) catalogSearch.value = searchTerm;
+            window.filterCatalog();
         });
+    }
+
+    if(catalogSearch) {
+        catalogSearch.addEventListener('input', window.filterCatalog);
     }
 
     const catButtons = document.querySelectorAll('.cat-btn');
@@ -118,19 +133,33 @@ function initializeSearchAndFilters() {
         btn.addEventListener('click', function() {
             catButtons.forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            const filterValue = this.getAttribute('data-filter');
-            const bookCards = document.querySelectorAll('.book-card');
-            
-            bookCards.forEach(card => {
-                if (filterValue === 'all' || card.getAttribute('data-category') === filterValue) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
+            window.filterCatalog();
         });
     });
 }
+
+window.filterCatalog = function() {
+    const searchInput = document.getElementById('catalog-search');
+    const query = searchInput ? searchInput.value.toLowerCase() : '';
+    const activeBtn = document.querySelector('.cat-btn.active');
+    const catFilter = activeBtn ? activeBtn.getAttribute('data-filter').toLowerCase() : 'all';
+
+    const cards = document.querySelectorAll('#student-books-grid .book-card');
+    cards.forEach(card => {
+        const title = card.querySelector('.book-title').innerText.toLowerCase();
+        const author = card.querySelector('.author').innerText.toLowerCase();
+        const category = card.getAttribute('data-category').toLowerCase();
+        
+        const matchesSearch = title.includes(query) || author.includes(query) || category.includes(query);
+        const matchesCategory = catFilter === 'all' || category === catFilter;
+
+        if(matchesSearch && matchesCategory) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+};
 
 // ==========================================
 // === Profile Management ===
@@ -139,41 +168,29 @@ let localStudentData = {};
 
 async function loadStudentProfileData() {
     try {
-        const response = await fetch('php/new_php/user_controller.php?action=get_student_profile');
+        const response = await fetch('php/user_controller.php?action=get_student_profile');
         const result = await response.json();
 
         if (result.status === "error") {
-            window.location.href = "student-login.html";
+            window.location.href = "student-login.html"; // Redirect if unauthorized
             return;
         }
 
         localStudentData = result.data;
 
-        const headerName = document.getElementById('header-profile-name');
-        const headerImg = document.getElementById('header-profile-img');
-        if (headerName) headerName.textContent = localStudentData.name;
-        if (headerImg) headerImg.src = localStudentData.avatar;
-
-        const dispName = document.getElementById('disp-name');
-        const dispEmail = document.getElementById('disp-email');
-        const dispPhone = document.getElementById('disp-phone');
-        const dispDob = document.getElementById('disp-dob');
-        const profilePreview = document.getElementById('settings-profile-preview');
-        const profileId = document.getElementById('settings-profile-id');
-
-        if (dispName) dispName.textContent = localStudentData.name;
-        if (dispEmail) dispEmail.textContent = localStudentData.email;
-        if (dispPhone) dispPhone.textContent = localStudentData.phone;
-        if (dispDob) dispDob.textContent = localStudentData.dob;
-        if (profilePreview) profilePreview.src = localStudentData.avatar;
-        if (profileId) profileId.textContent = localStudentData.id;
+        document.getElementById('header-profile-name').textContent = localStudentData.name;
+        document.getElementById('header-profile-img').src = localStudentData.avatar;
+        document.getElementById('disp-name').textContent = localStudentData.name;
+        document.getElementById('disp-email').textContent = localStudentData.email;
+        document.getElementById('disp-phone').textContent = localStudentData.phone;
+        document.getElementById('disp-dob').textContent = localStudentData.dob;
+        document.getElementById('settings-profile-preview').src = localStudentData.avatar;
+        document.getElementById('settings-profile-id').textContent = localStudentData.id;
 
         const qrImage = document.getElementById('student-qr-code');
         if (qrImage && localStudentData.id) {
             qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${localStudentData.id}`;
-            qrImage.onload = function() {
-                qrImage.style.display = 'block';
-            };
+            qrImage.onload = function() { qrImage.style.display = 'block'; };
         }
 
     } catch (error) {
@@ -184,7 +201,6 @@ async function loadStudentProfileData() {
 function triggerProfilePictureUpload() {
     const wrapper = document.getElementById('profile-picture-container');
     const fileInput = document.getElementById('profile-upload-input');
-    
     if (wrapper.classList.contains('editable') && fileInput) {
         fileInput.click();
     }
@@ -214,7 +230,6 @@ function showProfileEdit() {
     document.getElementById('edit-dob').value = document.getElementById('disp-dob').innerText;
 
     document.getElementById('profile-picture-container').classList.add('editable');
-
     document.getElementById('profile-view-state').style.display = 'none';
     document.getElementById('profile-edit-state').style.display = 'block';
     document.getElementById('profile-auth-state').style.display = 'none';
@@ -222,7 +237,6 @@ function showProfileEdit() {
 
 function cancelProfileEdit() {
     document.getElementById('profile-picture-container').classList.remove('editable');
-
     document.getElementById('profile-edit-state').style.display = 'none';
     document.getElementById('profile-view-state').style.display = 'block';
 }
@@ -238,7 +252,6 @@ function cancelProfileAuth() {
     document.getElementById('profile-edit-state').style.display = 'block';
 }
 
-// === Profile Updates ===
 async function saveProfileChanges() {
     const pw = document.getElementById('auth-password').value;
     if(pw.trim() === '') {
@@ -246,25 +259,20 @@ async function saveProfileChanges() {
         return;
     }
     
-    const name = document.getElementById('edit-name').value;
-    const email = document.getElementById('edit-email').value;
-    const phone = document.getElementById('edit-phone').value;
-    const dob = document.getElementById('edit-dob').value;
-    const fileInput = document.getElementById('profile-upload-input');
-
     const formData = new FormData();
     formData.append('password', pw);
-    formData.append('name', name);
-    formData.append('email', email);
-    formData.append('phone', phone);
-    formData.append('dob', dob);
+    formData.append('name', document.getElementById('edit-name').value);
+    formData.append('email', document.getElementById('edit-email').value);
+    formData.append('phone', document.getElementById('edit-phone').value);
+    formData.append('dob', document.getElementById('edit-dob').value);
 
+    const fileInput = document.getElementById('profile-upload-input');
     if(fileInput.files.length > 0) {
         formData.append('profile_pic', fileInput.files[0]);
     }
 
     try {
-        const response = await fetch('php/new_php/user_controller.php?action=update_student_profile', {
+        const response = await fetch('php/user_controller.php?action=update_student_profile', {
             method: 'POST',
             body: formData
         });
@@ -272,24 +280,14 @@ async function saveProfileChanges() {
 
         if (result.status === 'success') {
             alert('Profile updated successfully!');
-            
             document.getElementById('profile-picture-container').classList.remove('editable');
-            document.getElementById('disp-name').innerText = name;
-            document.getElementById('disp-email').innerText = email;
-            document.getElementById('disp-phone').innerText = phone;
-            document.getElementById('disp-dob').innerText = dob;
-            document.getElementById('header-profile-name').innerText = name;
-
             document.getElementById('profile-auth-state').style.display = 'none';
             document.getElementById('profile-view-state').style.display = 'block';
-            
             loadStudentProfileData(); 
-            
         } else {
             alert(result.message);
         }
     } catch (error) {
-        console.error("Error updating profile:", error);
         alert('An error occurred while updating the profile. Please try again.');
     }
 }
@@ -305,10 +303,7 @@ function startPasswordChange() {
 
 function verifyCurrentPassword() {
     const currentPw = document.getElementById('pw-current').value.trim();
-    if (currentPw === "") {
-        alert("Please enter your current password!");
-        return;
-    }
+    if (currentPw === "") { alert("Please enter your current password!"); return; }
     document.getElementById('pw-step-1').style.display = 'none';
     document.getElementById('pw-step-2').style.display = 'block';
     document.getElementById('pw-new').value = '';
@@ -320,34 +315,19 @@ async function confirmUpdatePassword() {
     const newPw = document.getElementById('pw-new').value;
     const confirmPw = document.getElementById('pw-confirm').value;
 
-    if (newPw === "" || confirmPw === "") {
-        alert("Please fill in both password fields!");
-        return;
-    }
-    if (newPw !== confirmPw) {
-        alert("New password and confirm password do not match!");
-        return;
-    }
+    if (newPw === "" || confirmPw === "") { alert("Please fill in both password fields!"); return; }
+    if (newPw !== confirmPw) { alert("New password and confirm password do not match!"); return; }
     
     try {
-        const response = await fetch('php/new_php/auth_controller.php?action=change_student_password', {
+        const response = await fetch('php/auth_controller.php?action=change_student_password', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                current_password: currentPw,
-                new_password: newPw
-            })
+            body: JSON.stringify({ current_password: currentPw, new_password: newPw })
         });
         const result = await response.json();
-
-        if (result.status === 'success') {
-            alert(result.message); 
-            cancelPasswordChange(); 
-        } else {
-            alert(result.message); 
-        }
+        alert(result.message);
+        if (result.status === 'success') cancelPasswordChange();
     } catch (error) {
-        console.error("Error changing password:", error);
         alert("Something went wrong while updating the password.");
     }
 }
@@ -361,10 +341,9 @@ function cancelPasswordChange() {
 // =========================================
 // === Library Data Loading ===
 // =========================================
-
 async function fetchBooks() {
     try {
-        const response = await fetch('php/new_php/library_controller.php?action=get_books');
+        const response = await fetch('php/library_controller.php?action=get_books');
         const data = await response.json();
         const grid = document.getElementById('student-books-grid');
         if(!grid) return;
@@ -392,16 +371,14 @@ async function fetchBooks() {
                 `;
                 grid.appendChild(card);
             });
-            if (window.filterCatalog) window.filterCatalog();
+            window.filterCatalog();
         }
-    } catch(e) {
-        console.error("Error fetching books", e);
-    }
+    } catch(e) { console.error("Error fetching books", e); }
 }
 
 async function fetchStudentBorrowings() {
     try {
-        const response = await fetch('php/new_php/library_controller.php?action=get_student_borrowings');
+        const response = await fetch('php/library_controller.php?action=get_student_borrowings');
         const data = await response.json();
         
         const tbody = document.getElementById('student-active-borrowings');
@@ -422,40 +399,31 @@ async function fetchStudentBorrowings() {
                 
                 data.data.forEach(b => {
                     dueDates.push(b.due_date);
-                    
                     if(tbody) {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
+                        tbody.innerHTML += `<tr>
                             <td>${b.title}</td>
                             <td><strong>${b.book_id}</strong></td>
                             <td>${b.issue_date}</td>
                             <td>${b.days_left >= 0 ? `<span class="timer-badge timer-safe">${b.days_left} Days Left</span>` : `<span class="timer-badge" style="background:#fee2e2; color:#ef4444;">Overdue</span>`}</td>
                             <td class="fine-text">Rs. ${b.fine.toFixed(2)}</td>
-                        `;
-                        tbody.appendChild(tr);
+                        </tr>`;
                     }
-                    if(list) {
-                        list.innerHTML += `<p>${counter}. ${b.title}</p>`;
-                    }
+                    if(list) list.innerHTML += `<p>${counter}. ${b.title}</p>`;
                     counter++;
                 });
-                
                 updateCountdownTimer(dueDates);
-                
             } else {
                 if(tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No active borrowings found.</td></tr>';
                 if(list) list.innerHTML = '<p>No books borrowed this week.</p>';
                 updateCountdownTimer([]); 
             }
         }
-    } catch(e) {
-        console.error("Error fetching student borrowings", e);
-    }
+    } catch(e) { console.error("Error fetching student borrowings", e); }
 }
 
 async function fetchStudentReservations() {
     try {
-        const response = await fetch('php/new_php/library_controller.php?action=get_student_reservations');
+        const response = await fetch('php/library_controller.php?action=get_student_reservations');
         const data = await response.json();
         const tbody = document.getElementById('student-reservations-body');
         if(!tbody) return;
@@ -463,137 +431,56 @@ async function fetchStudentReservations() {
         
         if(data.status === 'success' && data.data.length > 0) {
             data.data.forEach(r => {
-                const tr = document.createElement('tr');
                 const badge = r.status === 'Pending' ? `<span class="status-badge" style="background: #fef08a; color: #854d0e;">Pending</span>` : `<span class="status-badge active">Approved</span>`;
-                tr.innerHTML = `
+                tbody.innerHTML += `<tr>
                     <td>${r.title}</td>
                     <td>${r.request_date}</td>
                     <td>${badge}</td>
                     <td><button class="btn-danger-sm" onclick="cancelReservation(${r.id})">Cancel</button></td>
-                `;
-                tbody.appendChild(tr);
+                </tr>`;
             });
         } else {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No reservations found.</td></tr>';
         }
-    } catch(e) { 
-        console.error("Error fetching reservations", e); 
-    }
+    } catch(e) {}
 }
 
 async function reserveBook(bookId) {
     if(!confirm('Are you sure you want to request this book?')) return;
     try {
-        const response = await fetch('php/new_php/library_controller.php?action=reserve_book', {
+        const response = await fetch('php/library_controller.php?action=reserve_book', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({book_id: bookId})
         });
         const res = await response.json();
-        
+        alert(res.message);
         if(res.status === 'success') {
-            alert(res.message);
             fetchBooks();
             fetchStudentReservations();
-        } else {
-            alert(res.message);
         }
-    } catch(e) { 
-        console.error("Error requesting book", e); 
-    }
+    } catch(e) {}
 }
 
 async function cancelReservation(resId) {
     if(!confirm('Are you sure you want to cancel this request?')) return;
     try {
-        const response = await fetch('php/new_php/library_controller.php?action=cancel_reservation', {
+        const response = await fetch('php/library_controller.php?action=cancel_reservation', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({reservation_id: resId})
         });
         const res = await response.json();
-        
+        alert(res.message);
         if(res.status === 'success') {
-            alert(res.message);
             fetchStudentReservations();
             fetchBooks();
-        } else {
-            alert(res.message);
         }
-    } catch(e) { 
-        console.error("Error cancelling reservation", e); 
-    }
-}
-
-const originalShowSectionPhase2 = showSection;
-showSection = function(sectionId) {
-    if(typeof originalShowSectionPhase2 === 'function') {
-        originalShowSectionPhase2(sectionId);
-    }
-    
-    if(sectionId === 'home') {
-        fetchStudentBorrowings();
-    } else if (sectionId === 'browse-books') {
-        fetchBooks();
-    } else if (sectionId === 'my-borrowings') {
-        fetchStudentBorrowings();
-    } else if (sectionId === 'my-reservations') {
-        fetchStudentReservations();
-    }
+    } catch(e) {}
 }
 
 // =========================================
-// === Local Catalog Filtering ===
-// =========================================
-window.filterCatalog = function() {
-    const searchInput = document.getElementById('catalog-search');
-    const query = searchInput ? searchInput.value.toLowerCase() : '';
-    const activeBtn = document.querySelector('.cat-btn.active');
-    const catFilter = activeBtn ? activeBtn.getAttribute('data-filter').toLowerCase() : 'all';
-
-    const cards = document.querySelectorAll('#student-books-grid .book-card');
-    cards.forEach(card => {
-        const title = card.querySelector('.book-title').innerText.toLowerCase();
-        const author = card.querySelector('.author').innerText.toLowerCase();
-        const category = card.getAttribute('data-category').toLowerCase();
-        
-        const matchesSearch = title.includes(query) || author.includes(query) || category.includes(query);
-        const matchesCategory = catFilter === 'all' || category === catFilter;
-
-        if(matchesSearch && matchesCategory) {
-            card.style.display = 'flex';
-            card.style.animation = 'none';
-            card.offsetHeight;
-            card.style.animation = 'fadeInUp 0.4s ease-out forwards';
-        } else {
-            card.style.display = 'none';
-        }
-    });
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-    fetchStudentBorrowings();
-    fetchBooks(); 
-    fetchStudentReservations();
-
-    const searchInput = document.getElementById('catalog-search');
-    const catBtns = document.querySelectorAll('.cat-btn');
-
-    if(searchInput) {
-        searchInput.addEventListener('input', window.filterCatalog);
-    }
-
-    catBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            catBtns.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            window.filterCatalog();
-        });
-    });
-});
-
-// =========================================
-// === NEW: Self Checkout (Scan & Get Book) ===
+// === Self Checkout (Scan & Get Book) ===
 // =========================================
 let bookScanner = null;
 let scannedBookId = "";
@@ -601,72 +488,48 @@ let scannedBookId = "";
 function startBookScanner() {
     const readerDiv = document.getElementById('student-qr-reader');
     readerDiv.style.display = 'block';
+    if (bookScanner) bookScanner.clear();
 
-    if (bookScanner) {
-        bookScanner.clear();
-    }
-
-    bookScanner = new Html5QrcodeScanner(
-        "student-qr-reader", 
-        { fps: 10, qrbox: { width: 250, height: 250 } }, 
-        false
-    );
-
+    bookScanner = new Html5QrcodeScanner("student-qr-reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
     bookScanner.render(onScanSuccess, onScanError);
 }
 
 function onScanSuccess(decodedText, decodedResult) {
     scannedBookId = decodedText.trim();
-    
-    // Pause scanner
     if(bookScanner) bookScanner.pause(true);
     
-    // Fetch all books and find the scanned book dynamically using the new controller
-    fetch('php/new_php/library_controller.php?action=get_books')
+    fetch('php/library_controller.php?action=get_books')
     .then(res => res.json())
     .then(data => {
         if(data.status === 'success') {
             const book = data.data.find(b => b.book_id === scannedBookId);
-            
             if(book) {
                 if(book.status !== 'Available') {
                     alert("Sorry, this book is currently unavailable.");
-                    restartScanner();
-                    return;
+                    restartScanner(); return;
                 }
-                
-                // Populate Modal
                 document.getElementById('qr-modal-title').innerText = book.title;
                 document.getElementById('qr-modal-author').innerText = book.author;
                 document.getElementById('qr-modal-cover').src = book.cover_img ? book.cover_img : 'static/covers/default.png';
-                
                 document.getElementById('qr-book-modal').style.display = 'flex';
             } else {
                 alert("Book not found in the Library Database!");
                 restartScanner();
             }
         } else {
-            alert(data.message);
-            restartScanner();
+            alert(data.message); restartScanner();
         }
-    })
-    .catch(err => {
-        alert("System Error!");
-        restartScanner();
-    });
+    }).catch(err => { alert("System Error!"); restartScanner(); });
 }
 
-function onScanError(errorMessage) {
-    // Background errors ignore
-}
+function onScanError(errorMessage) {}
 
 function confirmGetBook() {
     const btn = document.getElementById('btn-confirm-get');
     btn.innerText = "Processing...";
     btn.disabled = true;
 
-    // Directing to submit_scan_request action
-    fetch('php/new_php/library_controller.php?action=submit_scan_request', {
+    fetch('php/library_controller.php?action=submit_scan_request', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ book_id: scannedBookId })
@@ -682,18 +545,14 @@ function confirmGetBook() {
             fetchBooks();
             fetchStudentBorrowings();
             showSection('my-borrowings');
-            // Scanner clear
             if(bookScanner) {
                 bookScanner.clear();
                 document.getElementById('student-qr-reader').style.display = 'none';
             }
-        } else {
-            restartScanner();
-        }
+        } else { restartScanner(); }
     });
 }
 
 function restartScanner() {
     if(bookScanner) bookScanner.resume();
 }
-// =========================================

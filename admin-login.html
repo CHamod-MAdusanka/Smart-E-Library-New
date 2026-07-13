@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    
+    <div style="position: absolute; left: -9999px;">
+        <input type="text" tabindex="-1">
+        <input type="password" tabindex="-1">
+    </div>
+
     <div class="top-bar">
         <a href="index.html">Home</a>
         <span class="divider">|</span>
@@ -22,7 +28,7 @@
             <form id="adminLoginForm" action="php/admin_auth.php" method="POST">
                 
                 <div id="step-1">
-                    <input type="text" name="adminId" id="adminId" placeholder="Admin ID" oninput="this.value = this.value.replace(/[^a-zA-Z0-9\-]/g, '')" onpaste="return false;" ondrop="return false;" autocomplete="off" required>
+                    <input type="text" name="adminId" id="adminId" placeholder="Admin ID" oninput="this.value = this.value.replace(/[^a-zA-Z0-9\-]/g, '')" onpaste="return false;" ondrop="return false;" autocomplete="new-password" data-lpignore="true" required>
                     <br>
                     <button type="button" class="login-btn" onclick="goToStep2()">Next</button>
                 </div>

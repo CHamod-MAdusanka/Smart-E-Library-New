@@ -181,6 +181,14 @@ async function loadStudentProfileData() {
         if (profilePreview) profilePreview.src = localStudentData.avatar;
         if (profileId) profileId.textContent = localStudentData.id;
 
+        const qrImage = document.getElementById('student-qr-code');
+        if (qrImage && localStudentData.id) {
+            qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${localStudentData.id}`;
+            qrImage.onload = function() {
+                qrImage.style.display = 'block';
+            };
+        }
+
     } catch (error) {
         console.error("Error loading student profile data:", error);
     }
@@ -494,7 +502,7 @@ async function fetchStudentReservations() {
 }
 
 async function reserveBook(bookId) {
-    if(!confirm('Are you sure you want to reserve this book?')) return;
+    if(!confirm('Are you sure you want to request this book?')) return;
     try {
         const response = await fetch('php/reserve_book.php', {
             method: 'POST',
@@ -511,12 +519,12 @@ async function reserveBook(bookId) {
             alert(res.message);
         }
     } catch(e) { 
-        console.error("Error reserving book", e); 
+        console.error("Error requesting book", e); 
     }
 }
 
 async function cancelReservation(resId) {
-    if(!confirm('Are you sure you want to cancel this reservation?')) return;
+    if(!confirm('Are you sure you want to cancel this request?')) return;
     try {
         const response = await fetch('php/cancel_reservation.php', {
             method: 'POST',
@@ -604,3 +612,40 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// =========================================
+// === NEW: QR Scan & Request Book ===
+// =========================================
+let bookScanner = null;
+
+function startBookScanner() {
+    const readerDiv = document.getElementById('student-qr-reader');
+    readerDiv.style.display = 'block';
+
+    // කලින් ස්කෑනර් එකක් ඔන් වෙලා නම් ඒක clear කරනවා
+    if (bookScanner) {
+        bookScanner.clear();
+    }
+
+    // අලුත් Scanner එකක් හදනවා
+    bookScanner = new Html5QrcodeScanner(
+        "student-qr-reader", 
+        { fps: 10, qrbox: { width: 250, height: 250 } }, 
+        false
+    );
+
+    bookScanner.render(
+        function (decodedText) {
+            // QR එකක් ස්කෑන් වුණාම මොකද වෙන්නේ
+            bookScanner.clear();
+            readerDiv.style.display = 'none';
+            
+            // දැනට තියෙන reserveBook function එක පාවිච්චි කරලා Request එක යවනවා
+            reserveBook(decodedText);
+        }, 
+        function (errorMessage) {
+            // Background scanning errors (මේක ගණන් ගන්න එපා)
+        }
+    );
+}
+// =========================================

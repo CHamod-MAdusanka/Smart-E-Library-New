@@ -9,6 +9,11 @@
 </head>
 <body>
 
+    <div style="position: absolute; left: -9999px;">
+        <input type="text" tabindex="-1">
+        <input type="password" tabindex="-1">
+    </div>
+
     <div class="dashboard-header">
         <div class="header-left">
             <button id="menu-btn" class="menu-toggle-btn">☰</button>
@@ -17,7 +22,7 @@
         
         <div class="header-center">
             <div class="search-box">
-                <input id="global-search" type="text" placeholder="Search books, authors, categories...">
+                <input id="global-search" type="text" placeholder="Search..." autocomplete="new-password" data-lpignore="true">
                 <span class="search-icon">🔍</span>
             </div>
         </div> 
@@ -49,6 +54,11 @@
                     HOME
                 </li>
                 <li class="menu-item" onclick="showSection('browse-books')">CATALOG & RESERVE</li>
+                
+                <!-- === NEW: Scan & Request Menu Item === -->
+                <li class="menu-item" onclick="showSection('scan-request')">SCAN & REQUEST</li>
+                <!-- =================================== -->
+                
                 <li class="menu-item" onclick="showSection('my-borrowings')">MY BORROWINGS</li>
                 <li class="menu-item" onclick="showSection('my-reservations')">MY RESERVATIONS</li>
                 <li class="menu-item settings-item" onclick="showSection('settings')">SETTINGS</li>
@@ -112,6 +122,23 @@
                 </div>
             </div>
 
+            <!-- === NEW: Scan & Request Section === -->
+            <div id="scan-request" class="dynamic-section section-hidden">
+                <div class="section-header" style="margin-top: 20px;">
+                    <h2 class="section-title">Scan & Request Book</h2>
+                    <p>Use your device camera to scan a book's QR code and send a borrowing request to the admin.</p>
+                </div>
+                <div class="settings-grid" style="display: flex; justify-content: center; margin-top: 20px;">
+                    <div class="settings-card" style="width: 100%; max-width: 500px; text-align: center;">
+                        <!-- Camera Preview Box -->
+                        <div id="student-qr-reader" style="width: 100%; margin: 0 auto 20px auto; display: none; border: 3px solid #4CB5A5; border-radius: 8px;"></div>
+                        
+                        <button class="btn-action btn-reserve" style="padding: 15px; font-size: 16px;" onclick="startBookScanner()">📷 Start Camera & Scan Book</button>
+                    </div>
+                </div>
+            </div>
+            <!-- =================================== -->
+
             <div id="my-borrowings" class="dynamic-section section-hidden">
                 <div class="section-header" style="margin-top: 20px;">
                     <h2 class="section-title">My Borrowed Books</h2>
@@ -173,6 +200,11 @@
                             </div>
                             <input type="file" id="profile-upload-input" style="display: none;" accept="image/*">
                             <h4 style="margin: 12px 0 0 0; color: var(--bg-slate); font-size: 16px; font-weight: 700;">Student ID: <span id="settings-profile-id" style="color: #64748b; font-weight: normal;">STU-001</span></h4>
+                            
+                            <div style="text-align: center; margin-top: 20px;">
+                                <p style="font-size: 13px; color: #64748B; font-weight: bold; margin-bottom: 5px;">My Library QR Code</p>
+                                <img id="student-qr-code" src="" alt="Student QR" style="width: 150px; height: 150px; border: 2px solid #4CB5A5; border-radius: 8px; padding: 5px; display: none; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                            </div>
                         </div>
 
                         <div id="profile-view-state">
@@ -266,6 +298,10 @@
         </div>
     </div>
 
+    <!-- === NEW: Scanner Library Link === -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- ================================ -->
+    
     <script src="js/student-app.js"></script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- === Meta Data & CSS === -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Smart E-Library</title>
@@ -9,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Roboto+Slab:wght@900&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- === Top Navigation Header === -->
     <div class="dashboard-header">
         <div class="header-left">
             <button id="menu-btn" class="menu-toggle-btn">☰</button>
@@ -23,14 +25,16 @@
         </div> 
         
         <div class="header-right">
+            <!-- Notifications -->
             <div class="dropdown">
                 <button class="icon-btn" id="bell-btn" onclick="toggleDropdown('notification-dropdown')">
                     🔔<span class="badge" id="notif-badge" style="display:none;">0</span>
                 </button>
                 <div id="notification-dropdown" class="dropdown-content notif-dropdown">
-                    </div>
+                </div>
             </div>
             
+            <!-- Profile -->
             <div class="dropdown">
                 <button class="profile-btn" onclick="toggleDropdown('profile-dropdown')"> 
                     <img id="header-profile-img" src="static/admin.png" alt="Profile" class="profile-img">
@@ -45,6 +49,7 @@
     </div>
 
     <div class="dashboard-container">        
+        <!-- === Sidebar Navigation === -->
         <div id="sidebar" class="sidebar">
             <h2>Admin Panel</h2>
             <ul class="sidebar-menu">
@@ -72,14 +77,6 @@
                     </ul>
                 </li>
 
-                <li class="menu-item">Write RFID ▾
-                    <ul class="submenu">
-                        <li onclick="showSection('student-rfid')"> Student RFID</li>
-                        <li onclick="showSection('books-rfid')"> Book RFID</li>
-                        <li onclick="showSection('rack-rfid')"> Rack RFID</li>
-                    </ul>
-                </li>
-
                 <li class="menu-item">Manage Books ▾
                     <ul class="submenu">
                         <li onclick="showSection('add-book')"> Add New Book</li>
@@ -88,13 +85,18 @@
                 </li>
 
                 <li class="menu-item" onclick="showSection('book-reservations')">Book Reservations</li>
+                
+                <li class="menu-item" onclick="showSection('scan-requests')">Scan Requests (QR)</li>
+                
                 <li class="menu-item" onclick="showSection('return-books')">Returns Books</li>
                 <li class="menu-item settings-item" onclick="showSection('settings')">⚙️ Settings</li>
             </ul>
         </div>
         
+        <!-- === Main Content Area === -->
         <div class="main-content" id="main-display-area">            
             
+            <!-- === Home Dashboard === -->
             <div id="home" class="dynamic-section" style="display: block;">
                 <div class="dashboard-cards">
                     <div class="card" id="stat-total-members">Total Members: -</div>
@@ -106,7 +108,7 @@
                 <div class="pro-banner">
                     <div class="pro-banner-text">
                         <h3>System Status: Online</h3>
-                        <p>All library services, RFID scanners, and IoT modules are currently running smoothly.</p>
+                        <p>All library services and IoT modules are currently running smoothly.</p>
                     </div>
                     <div class="pro-banner-graphic">
                         <div style="font-size: 60px; opacity: 0.9;">📈</div>
@@ -114,22 +116,23 @@
                 </div>
             </div>
 
+            <!-- === Issue Book Section === -->
             <div id="issue-book" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div>
                         <h2 class="section-title">Issue Book (Manual)</h2>
-                        <p>Scan student RFID and Book RFID to officially issue a book.</p>
+                        <p>Enter student ID and Book ID to officially issue a book.</p>
                     </div>
                 </div>
                 <div class="add-officer-panel">
                     <div class="add-officer-card">
                         <div class="field-grid">
                             <div class="field-item">
-                                <label>Student ID / Scan RFID</label>
+                                <label>Student ID</label>
                                 <input id="issue-student-id" type="text" placeholder="e.g. STU-001">
                             </div>
                             <div class="field-item">
-                                <label>Book ID / Scan RFID</label>
+                                <label>Book ID</label>
                                 <input id="issue-book-id" type="text" placeholder="e.g. nov01-r1">
                             </div>
                         </div>
@@ -138,6 +141,7 @@
                 </div>
             </div>
 
+            <!-- === Active Borrowings Section === -->
             <div id="active-borrowings" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div>
@@ -160,12 +164,13 @@
                                 </tr>
                             </thead>
                             <tbody id="borrowings-body">
-                                </tbody>
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- === View Students Section === -->
             <div id="view-members" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">View All Students</h2></div>
@@ -183,13 +188,14 @@
                                     </tr>
                                 </thead>
                                 <tbody id="all-students-body">
-                                    </tbody>
+                                </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- === Approve Registrations Section === -->
             <div id="approve-registrations" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Approve New Registrations</h2></div>
@@ -207,13 +213,14 @@
                                     </tr>
                                 </thead>
                                 <tbody id="pending-students-body">
-                                    </tbody>
+                                </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- === Remove Student Section === -->
             <div id="remove-member" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Remove Student</h2></div>
@@ -231,97 +238,14 @@
                                     </tr>
                                 </thead>
                                 <tbody id="remove-students-body">
-                                    </tbody>
+                                </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="student-rfid" class="dynamic-section section-hidden">
-                <div class="section-header">
-                    <div>
-                        <h2 class="section-title">Student RFID Assignment</h2>
-                        <p>Link physical RFID smart cards to registered students.</p>
-                    </div>
-                </div>
-                <div class="directory-panel">
-                    <div class="table-card">
-                        <table class="styled-table">
-                            <thead>
-                                <tr>
-                                    <th>Student Name</th>
-                                    <th>Student ID</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="rfid-students-body">
-                                </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div id="books-rfid" class="dynamic-section section-hidden">
-                <div class="section-header">
-                    <div>
-                        <h2 class="section-title">Book RFID Assignment</h2>
-                        <p>Link RFID tracking tags to library inventory books.</p>
-                    </div>
-                </div>
-                <div class="add-officer-panel">
-                    <div class="table-card">
-                        <table class="styled-table">
-                            <thead>
-                                <tr>
-                                    <th>Book Title</th>
-                                    <th>Book ID</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="books-rfid-body">
-                                </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div id="rack-rfid" class="dynamic-section section-hidden">
-                <div class="section-header">
-                    <div>
-                        <h2 class="section-title">Rack RFID Assignment</h2>
-                        <p>Register library racks and assign unique RFID tags for misplacement detection.</p>
-                    </div>
-                </div>
-                <div class="add-officer-panel">
-                    <div class="add-officer-card">
-                        <div class="field-grid">
-                            <div class="field-item">
-                                <label>Rack Name / Category Description</label>
-                                <input id="rack-name-input" type="text" placeholder="e.g. Science Section - Rack 01">
-                            </div>
-                        </div>
-                        <button class="btn-save panel-button" onclick="addNewRack()">+ Add Rack</button>
-                    </div>
-                </div>
-                <div class="directory-panel">
-                    <div class="table-card">
-                        <table class="styled-table" id="racks-table">
-                            <thead>
-                                <tr>
-                                    <th>Rack ID</th>
-                                    <th>Rack Name</th>
-                                    <th>RFID Tag UID</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="racks-body">
-                                </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
+            <!-- === Add Book Section === -->
             <div id="add-book" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Add New Book</h2></div>
@@ -383,12 +307,13 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                </tbody>
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- === Remove Book Section === -->
             <div id="remove-book" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Remove Book</h2></div>
@@ -415,15 +340,16 @@
                                 </tr>
                             </thead>
                             <tbody id="remove-book-body">
-                                </tbody>
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- === Book Reservations Section === -->
             <div id="book-reservations" class="dynamic-section section-hidden">
                 <div class="section-header">
-                    <div><h2 class="section-title">Book Reservations</h2></div>
+                    <div><h2 class="section-title">Online Book Reservations</h2></div>
                 </div>
                 <div class="add-officer-panel">
                     <div class="add-officer-card">
@@ -439,13 +365,43 @@
                                     </tr>
                                 </thead>
                                 <tbody id="admin-reservations-body">
-                                    </tbody>
+                                </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- === Scan Requests Section === -->
+            <div id="scan-requests" class="dynamic-section section-hidden">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Scan Requests (QR)</h2>
+                        <p>Live borrowing requests from students scanning books via their mobile dashboard.</p>
+                    </div>
+                </div>
+                <div class="add-officer-panel">
+                    <div class="add-officer-card">
+                        <div class="table-card">
+                            <table class="styled-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student Name</th>
+                                        <th>Book Title</th>
+                                        <th>Scan Time</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-scan-requests-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- === Returns Books Section === -->
             <div id="return-books" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div>
@@ -467,12 +423,13 @@
                                 </tr>
                             </thead>
                             <tbody id="returns-body">
-                                </tbody>
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- === System Settings Section === -->
             <div id="settings" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">System Settings & Profile</h2></div>
@@ -544,6 +501,7 @@
                         </div>
                     </div>
 
+                    <!-- === Library Preferences === -->
                     <div class="settings-card">
                         <h3>Library Preferences</h3>
                         <div class="form-style" style="margin-top: 15px;">
@@ -559,6 +517,7 @@
                         </div>
                     </div>
 
+                    <!-- === Data Backup === -->
                     <div class="settings-card">
                         <h3>Data Backup</h3>
                         <p style="color:#64748b; font-size:14px; margin-bottom:15px;">Download all localized books, students, and system data instantly.</p>
@@ -570,6 +529,7 @@
         </div>
     </div>
 
+    <!-- === Modals === -->
     <div id="delete-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Are you sure?</h3>
@@ -590,21 +550,6 @@
             </div>
         </div>
     </div>          
-
-    <div id="rfid-modal" class="modal-overlay" style="display:none;">
-        <div class="modal-content">
-            <div style="font-size: 50px; animation: pulse 1.5s infinite;">📇</div>
-            <h3 id="rfid-modal-title">Assign RFID</h3>
-            <p id="rfid-modal-text" style="font-size: 13px; color: #64748b;">Please tap the card on the scanner reader module.</p>
-            
-            <input type="text" id="rfid-scanner-input" class="modal-input" placeholder="Waiting for scanner input..." style="text-align:center; font-weight:bold; letter-spacing:2px;" autofocus>
-            
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeRfidModal()">Cancel</button>
-                <button class="btn-save" style="background:#10b981;" onclick="saveRfidData()">Link RFID</button>
-            </div>
-        </div>
-    </div>
 
     <div id="profile-auth-modal" class="modal-overlay">
         <div class="modal-content">

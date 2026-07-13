@@ -31,10 +31,10 @@ function showSection(sectionId) {
         case 'remove-member': fetchAllStudents(); break;
         case 'approve-registrations': fetchPendingStudents(); break;
         case 'add-book': 
-        case 'remove-book': 
-        case 'books-rfid': fetchAdminBooks(); break;
+        case 'remove-book': fetchAdminBooks(); break;
         case 'book-reservations': fetchAdminReservations(); break;
         case 'active-borrowings': fetchActiveBorrowings(); break;
+        case 'scan-requests': fetchScanRequests(); break;
     }
 }
 
@@ -48,6 +48,9 @@ document.querySelectorAll('.menu-item').forEach(item => {
     });
 });
 
+// =========================================
+// === Search functionality ===
+// =========================================
 const globalSearchInput = document.getElementById('global-search');
 if (globalSearchInput) {
     globalSearchInput.addEventListener('input', function() {
@@ -84,13 +87,12 @@ window.addEventListener('click', function(e) {
     }
 });
 
-
 // =========================================
 // === Dashboard Data and Profile ===
 // =========================================
 async function loadUserProfileData() {
     try {
-        const response = await fetch('php/get_admin_profile.php');
+        const response = await fetch('php/new_php/user_controller.php?action=get_admin_profile');
         const result = await response.json();
         if (result.status === "success") {
             const data = result.data;
@@ -113,7 +115,7 @@ async function loadUserProfileData() {
 
 async function fetchDashboardStats() {
     try {
-        const response = await fetch('php/get_dashboard_stats.php');
+        const response = await fetch('php/new_php/system_controller.php?action=get_dashboard_stats');
         const data = await response.json();
         
         if(data.status === 'success') {
@@ -159,7 +161,7 @@ async function fetchDashboardStats() {
 // =========================================
 async function fetchOfficers() {
     try {
-        const response = await fetch('php/get_officers.php');
+        const response = await fetch('php/new_php/user_controller.php?action=get_officers');
         const data = await response.json();
         
         const viewBody = document.getElementById('view-officers-body');
@@ -198,7 +200,7 @@ async function createNewOfficer() {
     }
 
     try {
-        const response = await fetch('php/add_officer.php', {
+        const response = await fetch('php/new_php/user_controller.php?action=add_officer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ work_id: workId, first_name: fName, last_name: lName, email: email, password: password })
@@ -223,13 +225,12 @@ async function createNewOfficer() {
 // =========================================
 async function fetchPendingStudents() {
     try {
-        const res = await fetch('php/get_pending_students.php');
+        const res = await fetch('php/new_php/user_controller.php?action=get_pending_students');
         const data = await res.json();
         const tbody = document.getElementById('pending-students-body');
         if(!tbody) return; tbody.innerHTML = '';
         if(data.status === 'success' && data.data.length > 0) {
             data.data.forEach(s => {
-                
                 let correctedPath = s.proof_doc;
                 if (correctedPath && correctedPath.startsWith('../')) {
                     correctedPath = correctedPath.substring(3);
@@ -246,7 +247,7 @@ async function fetchPendingStudents() {
 
 async function fetchAllStudents() {
     try {
-        const res = await fetch('php/get_all_students.php');
+        const res = await fetch('php/new_php/user_controller.php?action=get_all_students');
         const data = await res.json();
         const allTb = document.getElementById('all-students-body');
         const remTb = document.getElementById('remove-students-body');
@@ -270,7 +271,7 @@ async function fetchAllStudents() {
 async function approveStudent(id) {
     if(!confirm("Approve student " + id + "?")) return;
     try {
-        const res = await fetch('php/approve_student.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: id }) });
+        const res = await fetch('php/new_php/user_controller.php?action=approve_student', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: id }) });
         const result = await res.json(); alert(result.message);
         if(result.status === 'success') { fetchPendingStudents(); fetchAllStudents(); fetchDashboardStats(); }
     } catch(e) {}
@@ -279,7 +280,7 @@ async function approveStudent(id) {
 async function rejectStudent(id) {
     if(!confirm("Remove student " + id + "?")) return;
     try {
-        const res = await fetch('php/remove_student.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: id }) });
+        const res = await fetch('php/new_php/user_controller.php?action=remove_student', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: id }) });
         const result = await res.json(); alert(result.message);
         if(result.status === 'success') { fetchPendingStudents(); fetchAllStudents(); fetchDashboardStats(); }
     } catch(e) {}
@@ -299,23 +300,20 @@ function updateBookIdPreview() {
 
 async function fetchAdminBooks() {
     try {
-        const response = await fetch('php/get_books.php');
+        const response = await fetch('php/new_php/library_controller.php?action=get_books');
         const data = await response.json();
         
         const removeBody = document.getElementById('remove-book-body');
         const invBody = document.querySelector('#book-inventory-table tbody');
-        const rfidBody = document.getElementById('books-rfid-body');
         
         if(removeBody) removeBody.innerHTML = '';
         if(invBody) invBody.innerHTML = '';
-        if(rfidBody) rfidBody.innerHTML = '';
         
         if(data.status === 'success' && data.data.length > 0) {
             data.data.forEach(book => {
                 const cover = book.cover_img ? book.cover_img : 'static/covers/default.png';
                 if(removeBody) removeBody.innerHTML += `<tr><td><img src="${cover}" width="40" height="60" style="object-fit: cover;"></td><td><strong>${book.book_id}</strong></td><td>${book.title}</td><td>${book.author}</td><td><button class="btn-danger" onclick="confirmDeleteBook('${book.book_id}', '${book.title.replace(/'/g, "\\'")}')">✖ Remove</button></td></tr>`;
                 if(invBody) invBody.innerHTML += `<tr><td><img src="${cover}" width="40" height="60" style="object-fit: cover;"></td><td>${book.book_id}</td><td>${book.title}</td><td>${book.author}</td><td>${book.category}</td><td>DB Data</td></tr>`;
-                if(rfidBody) rfidBody.innerHTML += `<tr><td>${book.title}</td><td>${book.book_id}</td><td><button class="btn-save">Write RFID</button></td></tr>`;
             });
         }
     } catch(e) {}
@@ -324,7 +322,7 @@ async function fetchAdminBooks() {
 async function confirmDeleteBook(id, title) {
     if (confirm(`Are you sure you want to delete:\n"${title}"?`)) {
         try {
-            const response = await fetch('php/remove_book.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ book_id: id }) });
+            const response = await fetch('php/new_php/library_controller.php?action=remove_book', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ book_id: id }) });
             const result = await response.json(); alert(result.message);
             if (result.status === 'success') fetchAdminBooks(); 
         } catch (error) {}
@@ -336,7 +334,7 @@ async function confirmDeleteBook(id, title) {
 // =========================================
 async function fetchAdminReservations() {
     try {
-        const response = await fetch('php/get_admin_reservations.php');
+        const response = await fetch('php/new_php/library_controller.php?action=get_admin_reservations');
         const data = await response.json();
         const tbody = document.getElementById('admin-reservations-body');
         if(!tbody) return; tbody.innerHTML = '';
@@ -353,7 +351,7 @@ async function fetchAdminReservations() {
 async function approveReservation(resId) {
     if(!confirm('Approve this reservation?')) return;
     try {
-        const response = await fetch('php/approve_reservation.php', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({reservation_id: resId}) });
+        const response = await fetch('php/new_php/library_controller.php?action=approve_reservation', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({reservation_id: resId}) });
         const res = await response.json(); alert(res.message);
         if(res.status === 'success') fetchAdminReservations();
     } catch(e) {}
@@ -362,7 +360,7 @@ async function approveReservation(resId) {
 async function cancelAdminReservation(resId) {
     if(!confirm('Cancel this reservation?')) return;
     try {
-        const response = await fetch('php/cancel_reservation.php', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({reservation_id: resId}) });
+        const response = await fetch('php/new_php/library_controller.php?action=cancel_reservation', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({reservation_id: resId}) });
         const res = await response.json(); alert(res.message);
         if(res.status === 'success') fetchAdminReservations();
     } catch(e) {}
@@ -370,7 +368,7 @@ async function cancelAdminReservation(resId) {
 
 async function fetchActiveBorrowings() {
     try {
-        const response = await fetch('php/get_active_borrowings.php');
+        const response = await fetch('php/new_php/library_controller.php?action=get_active_borrowings');
         const data = await response.json();
         const tbody = document.getElementById('borrowings-body');
         if(!tbody) return; tbody.innerHTML = '';
@@ -390,7 +388,7 @@ async function issueNewBook() {
     if(!studentId || !bookId) { alert("Please enter both IDs."); return; }
     
     try {
-        const response = await fetch('php/issue_book.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: studentId, book_id: bookId }) });
+        const response = await fetch('php/new_php/library_controller.php?action=issue_book', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: studentId, book_id: bookId }) });
         const result = await response.json(); alert(result.message);
         if(result.status === 'success') {
             document.getElementById('issue-student-id').value = '';
@@ -398,6 +396,56 @@ async function issueNewBook() {
             fetchDashboardStats(); fetchActiveBorrowings(); showSection('active-borrowings');
         }
     } catch(e) {}
+}
+
+// =========================================
+// === Scan Requests Management ===
+// =========================================
+async function fetchScanRequests() {
+    try {
+        const response = await fetch('php/new_php/library_controller.php?action=get_scan_requests');
+        const data = await response.json();
+        const tbody = document.getElementById('admin-scan-requests-body');
+        if(!tbody) return; 
+        tbody.innerHTML = '';
+        
+        if(data.status === 'success' && data.data.length > 0) {
+            data.data.forEach(r => {
+                const actionBtns = `<button class="btn-approve" onclick="approveScanRequest(${r.id})">✔ Approve & Issue</button>`;
+                tbody.innerHTML += `<tr>
+                    <td>${r.student_name} <br><small>${r.student_id}</small></td>
+                    <td>${r.book_title} <br><small>${r.book_id}</small></td>
+                    <td>${r.request_time}</td>
+                    <td><span class="status-badge" style="background: #fef08a; color: #854d0e;">Pending</span></td>
+                    <td>${actionBtns}</td>
+                </tr>`;
+            });
+        } else { 
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No scan requests found.</td></tr>'; 
+        }
+    } catch(e) {
+        console.error("Error fetching scan requests", e);
+    }
+}
+
+async function approveScanRequest(reqId) {
+    if(!confirm('Are you sure you want to approve this request and issue the book for 14 days?')) return;
+    try {
+        const response = await fetch('php/new_php/library_controller.php?action=approve_scan_request', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({request_id: reqId}) 
+        });
+        const res = await response.json(); 
+        alert(res.message);
+        if(res.status === 'success') { 
+            fetchScanRequests(); 
+            fetchActiveBorrowings();
+            fetchDashboardStats(); 
+        }
+    } catch(e) {
+        console.error("Error approving scan request", e);
+    }
 }
 
 // =========================================
@@ -436,7 +484,7 @@ async function confirmProfileAuth() {
     }
 
     try {
-        const res = await fetch('php/update_admin_profile.php', {
+        const res = await fetch('php/new_php/user_controller.php?action=update_admin_profile', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ password: pass, full_name: name, email: email, profile_pic: imgSrc })
@@ -477,7 +525,7 @@ async function confirmUpdatePassword() {
     if(!newPw || newPw !== confPw) return alert("New passwords do not match!");
 
     try {
-        const res = await fetch('php/change_admin_password.php', {
+        const res = await fetch('php/new_php/auth_controller.php?action=change_admin_password', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ current_password: curr, new_password: newPw })
@@ -500,7 +548,7 @@ function closePwSuccess() {
 // =========================================
 async function loadPreferences() {
     try {
-        const res = await fetch('php/get_preferences.php');
+        const res = await fetch('php/new_php/system_controller.php?action=get_preferences');
         const result = await res.json();
         if(result.status === 'success') {
             const pDays = document.getElementById('pref-days');
@@ -515,7 +563,7 @@ async function updatePreferences() {
     const days = document.getElementById('pref-days').value;
     const fine = document.getElementById('pref-fine').value;
     try {
-        const res = await fetch('php/update_preferences.php', {
+        const res = await fetch('php/new_php/system_controller.php?action=update_preferences', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ borrow_days: days, fine_amount: fine })
@@ -526,7 +574,7 @@ async function updatePreferences() {
 }
 
 function downloadDatabaseBackup() {
-    window.location.href = 'php/backup_database.php';
+    window.location.href = 'php/new_php/backup_database.php';
 }
 
 // =========================================
@@ -534,7 +582,7 @@ function downloadDatabaseBackup() {
 // =========================================
 async function loadTransferOfficers() {
     try {
-        const res = await fetch('php/get_officers.php');
+        const res = await fetch('php/new_php/user_controller.php?action=get_officers');
         const data = await res.json();
         const select = document.getElementById('transfer-officer-select');
         if(!select) return;
@@ -556,7 +604,7 @@ async function executeOwnershipTransfer() {
     
     if(confirm("Are you sure? You will lose Head Admin privileges.")) {
         try {
-            const res = await fetch('php/transfer_ownership.php', {
+            const res = await fetch('php/new_php/user_controller.php?action=transfer_ownership', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ new_head_id: newHeadId })
@@ -571,7 +619,7 @@ async function executeOwnershipTransfer() {
 async function executeAccountDeletion() {
     if(confirm("DANGER: Are you sure you want to completely delete your account?")) {
         try {
-            const res = await fetch('php/delete_account.php');
+            const res = await fetch('php/new_php/user_controller.php?action=delete_account');
             const result = await res.json();
             alert(result.message);
             if(result.status === 'success') { window.location.href = 'index.html'; }

@@ -12,13 +12,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    
     initializeSearchAndFilters();
-    
-    
     initializeProfilePictureListener();
-
-    
     loadStudentProfileData();
 });
 
@@ -37,9 +32,7 @@ function toggleDropdown(id) {
     document.getElementById(id).classList.toggle('show');
 }
 
-
 window.onclick = function(event) {
-    
     if (!event.target.matches('.profile-btn') && !event.target.closest('.profile-btn')) {
         var dropdowns = document.getElementsByClassName("dropdown-content");
         for (var i = 0; i < dropdowns.length; i++) {
@@ -60,12 +53,10 @@ function updateCountdownTimer(dueDates) {
     const timerElement = document.getElementById('return-timer');
     if (!timerElement) return;
 
-    
     if (countdownInterval) {
         clearInterval(countdownInterval);
     }
 
-    
     if (!dueDates || dueDates.length === 0) {
         timerElement.innerText = "No active books";
         timerElement.style.color = "var(--text-dark)";
@@ -73,7 +64,6 @@ function updateCountdownTimer(dueDates) {
         return;
     }
 
-    
     const closestDate = new Date(Math.min(...dueDates.map(d => new Date(d + 'T23:59:59').getTime())));
 
     countdownInterval = setInterval(() => {
@@ -94,7 +84,6 @@ function updateCountdownTimer(dueDates) {
 
         const format = (num) => num.toString().padStart(2, '0');
         timerElement.innerText = `${d}d : ${format(h)}h : ${format(m)}m : ${format(s)}s`;
-        
         
         timerElement.style.color = "";
         timerElement.style.background = "";
@@ -150,7 +139,7 @@ let localStudentData = {};
 
 async function loadStudentProfileData() {
     try {
-        const response = await fetch('php/get_student_profile.php');
+        const response = await fetch('php/new_php/user_controller.php?action=get_student_profile');
         const result = await response.json();
 
         if (result.status === "error") {
@@ -160,13 +149,11 @@ async function loadStudentProfileData() {
 
         localStudentData = result.data;
 
-        
         const headerName = document.getElementById('header-profile-name');
         const headerImg = document.getElementById('header-profile-img');
         if (headerName) headerName.textContent = localStudentData.name;
         if (headerImg) headerImg.src = localStudentData.avatar;
 
-        
         const dispName = document.getElementById('disp-name');
         const dispEmail = document.getElementById('disp-email');
         const dispPhone = document.getElementById('disp-phone');
@@ -265,7 +252,6 @@ async function saveProfileChanges() {
     const dob = document.getElementById('edit-dob').value;
     const fileInput = document.getElementById('profile-upload-input');
 
-    
     const formData = new FormData();
     formData.append('password', pw);
     formData.append('name', name);
@@ -278,7 +264,7 @@ async function saveProfileChanges() {
     }
 
     try {
-        const response = await fetch('php/update_student_profile.php', {
+        const response = await fetch('php/new_php/user_controller.php?action=update_student_profile', {
             method: 'POST',
             body: formData
         });
@@ -286,7 +272,6 @@ async function saveProfileChanges() {
 
         if (result.status === 'success') {
             alert('Profile updated successfully!');
-            
             
             document.getElementById('profile-picture-container').classList.remove('editable');
             document.getElementById('disp-name').innerText = name;
@@ -297,7 +282,6 @@ async function saveProfileChanges() {
 
             document.getElementById('profile-auth-state').style.display = 'none';
             document.getElementById('profile-view-state').style.display = 'block';
-            
             
             loadStudentProfileData(); 
             
@@ -331,7 +315,6 @@ function verifyCurrentPassword() {
     document.getElementById('pw-confirm').value = '';
 }
 
-
 async function confirmUpdatePassword() {
     const currentPw = document.getElementById('pw-current').value.trim();
     const newPw = document.getElementById('pw-new').value;
@@ -347,7 +330,7 @@ async function confirmUpdatePassword() {
     }
     
     try {
-        const response = await fetch('php/change_student_password.php', {
+        const response = await fetch('php/new_php/auth_controller.php?action=change_student_password', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -381,7 +364,7 @@ function cancelPasswordChange() {
 
 async function fetchBooks() {
     try {
-        const response = await fetch('php/get_books.php');
+        const response = await fetch('php/new_php/library_controller.php?action=get_books');
         const data = await response.json();
         const grid = document.getElementById('student-books-grid');
         if(!grid) return;
@@ -418,7 +401,7 @@ async function fetchBooks() {
 
 async function fetchStudentBorrowings() {
     try {
-        const response = await fetch('php/get_student_borrowings.php');
+        const response = await fetch('php/new_php/library_controller.php?action=get_student_borrowings');
         const data = await response.json();
         
         const tbody = document.getElementById('student-active-borrowings');
@@ -457,14 +440,11 @@ async function fetchStudentBorrowings() {
                     counter++;
                 });
                 
-                
                 updateCountdownTimer(dueDates);
                 
             } else {
                 if(tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No active borrowings found.</td></tr>';
                 if(list) list.innerHTML = '<p>No books borrowed this week.</p>';
-                
-                
                 updateCountdownTimer([]); 
             }
         }
@@ -475,7 +455,7 @@ async function fetchStudentBorrowings() {
 
 async function fetchStudentReservations() {
     try {
-        const response = await fetch('php/get_student_reservations.php');
+        const response = await fetch('php/new_php/library_controller.php?action=get_student_reservations');
         const data = await response.json();
         const tbody = document.getElementById('student-reservations-body');
         if(!tbody) return;
@@ -504,7 +484,7 @@ async function fetchStudentReservations() {
 async function reserveBook(bookId) {
     if(!confirm('Are you sure you want to request this book?')) return;
     try {
-        const response = await fetch('php/reserve_book.php', {
+        const response = await fetch('php/new_php/library_controller.php?action=reserve_book', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({book_id: bookId})
@@ -526,7 +506,7 @@ async function reserveBook(bookId) {
 async function cancelReservation(resId) {
     if(!confirm('Are you sure you want to cancel this request?')) return;
     try {
-        const response = await fetch('php/cancel_reservation.php', {
+        const response = await fetch('php/new_php/library_controller.php?action=cancel_reservation', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({reservation_id: resId})
@@ -544,7 +524,6 @@ async function cancelReservation(resId) {
         console.error("Error cancelling reservation", e); 
     }
 }
-
 
 const originalShowSectionPhase2 = showSection;
 showSection = function(sectionId) {
@@ -614,38 +593,107 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // =========================================
-// === NEW: QR Scan & Request Book ===
+// === NEW: Self Checkout (Scan & Get Book) ===
 // =========================================
 let bookScanner = null;
+let scannedBookId = "";
 
 function startBookScanner() {
     const readerDiv = document.getElementById('student-qr-reader');
     readerDiv.style.display = 'block';
 
-    // කලින් ස්කෑනර් එකක් ඔන් වෙලා නම් ඒක clear කරනවා
     if (bookScanner) {
         bookScanner.clear();
     }
 
-    // අලුත් Scanner එකක් හදනවා
     bookScanner = new Html5QrcodeScanner(
         "student-qr-reader", 
         { fps: 10, qrbox: { width: 250, height: 250 } }, 
         false
     );
 
-    bookScanner.render(
-        function (decodedText) {
-            // QR එකක් ස්කෑන් වුණාම මොකද වෙන්නේ
-            bookScanner.clear();
-            readerDiv.style.display = 'none';
+    bookScanner.render(onScanSuccess, onScanError);
+}
+
+function onScanSuccess(decodedText, decodedResult) {
+    scannedBookId = decodedText.trim();
+    
+    // Pause scanner
+    if(bookScanner) bookScanner.pause(true);
+    
+    // Fetch all books and find the scanned book dynamically using the new controller
+    fetch('php/new_php/library_controller.php?action=get_books')
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === 'success') {
+            const book = data.data.find(b => b.book_id === scannedBookId);
             
-            // දැනට තියෙන reserveBook function එක පාවිච්චි කරලා Request එක යවනවා
-            reserveBook(decodedText);
-        }, 
-        function (errorMessage) {
-            // Background scanning errors (මේක ගණන් ගන්න එපා)
+            if(book) {
+                if(book.status !== 'Available') {
+                    alert("Sorry, this book is currently unavailable.");
+                    restartScanner();
+                    return;
+                }
+                
+                // Populate Modal
+                document.getElementById('qr-modal-title').innerText = book.title;
+                document.getElementById('qr-modal-author').innerText = book.author;
+                document.getElementById('qr-modal-cover').src = book.cover_img ? book.cover_img : 'static/covers/default.png';
+                
+                document.getElementById('qr-book-modal').style.display = 'flex';
+            } else {
+                alert("Book not found in the Library Database!");
+                restartScanner();
+            }
+        } else {
+            alert(data.message);
+            restartScanner();
         }
-    );
+    })
+    .catch(err => {
+        alert("System Error!");
+        restartScanner();
+    });
+}
+
+function onScanError(errorMessage) {
+    // Background errors ignore
+}
+
+function confirmGetBook() {
+    const btn = document.getElementById('btn-confirm-get');
+    btn.innerText = "Processing...";
+    btn.disabled = true;
+
+    // Directing to submit_scan_request action
+    fetch('php/new_php/library_controller.php?action=submit_scan_request', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ book_id: scannedBookId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message);
+        document.getElementById('qr-book-modal').style.display = 'none';
+        btn.innerText = "Get Book";
+        btn.disabled = false;
+        
+        if(data.status === 'success') {
+            fetchBooks();
+            fetchStudentBorrowings();
+            showSection('my-borrowings');
+            // Scanner clear
+            if(bookScanner) {
+                bookScanner.clear();
+                document.getElementById('student-qr-reader').style.display = 'none';
+            }
+        } else {
+            restartScanner();
+        }
+    });
+}
+
+function restartScanner() {
+    if(bookScanner) bookScanner.resume();
 }
 // =========================================

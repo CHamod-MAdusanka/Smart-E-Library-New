@@ -394,7 +394,7 @@
                     <div class="table-card">
                         <table class="styled-table" id="book-inventory-table">
                             <thead>
-                                <tr><th>Cover</th><th>Book ID</th><th>Title</th><th>Author</th><th>Category</th><th>Rack</th></tr>
+                                <tr><th>Cover</th><th>Book ID</th><th>Title</th><th>Author</th><th>Category</th><th>QR Code</th></tr>
                             </thead>
                             <tbody></tbody>
                         </table>
@@ -481,26 +481,14 @@
             <div id="return-books" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div>
-                        <h2 class="section-title">Returns Books</h2>
-                        <p>Track returned books (IoT Pending) and physically confirm them. Overdue fines are calculated dynamically.</p>
+                        <h2 class="section-title">Returns Books (QR Scanner)</h2>
+                        <p>Scan a book's QR code to process its return and calculate fines instantly.</p>
                     </div>
                 </div>
-                <div class="directory-panel">
-                    <div class="table-card">
-                        <table class="styled-table" id="returns-table">
-                            <thead>
-                                <tr>
-                                    <th>Student Details</th>
-                                    <th>Book Details</th>
-                                    <th>Return Dropped Date</th>
-                                    <th>Fine Status</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="returns-body">
-                            </tbody>
-                        </table>
+                <div class="settings-grid" style="display: flex; justify-content: center; margin-top: 20px;">
+                    <div class="settings-card" style="width: 100%; max-width: 500px; text-align: center;">
+                        <div id="admin-qr-reader" style="width: 100%; margin: 0 auto 20px auto; display: none; border: 3px solid #3b82f6; border-radius: 8px;"></div>
+                        <button class="btn-approve" style="padding: 15px; font-size: 16px; width: 100%;" onclick="startAdminScanner()">📷 Start Return Scanner</button>
                     </div>
                 </div>
             </div>
@@ -573,13 +561,14 @@
                         <div class="form-style" style="margin-top: 15px;">
                             <div style="margin-bottom: 12px;">
                                 <label style="font-weight:bold; display:block; margin-bottom:5px;">Borrowing Period (Days)</label>
-                                <input type="number" id="pref-days" class="filter-input" style="max-width:100%; width:90%;" value="14" onchange="renderBorrowings(); renderReturns();">
+                                <input type="number" id="pref-days" class="filter-input" style="max-width:100%; width:90%;" value="14">
                             </div>
                             <div style="margin-bottom: 15px;">
                                 <label style="font-weight:bold; display:block; margin-bottom:5px;">Late Fine Amount (Per Day - LKR)</label>
-                                <input type="number" id="pref-fine" class="filter-input" style="max-width:100%; width:90%;" value="20" onchange="renderBorrowings(); renderReturns();">
+                                <input type="number" id="pref-fine" class="filter-input" style="max-width:100%; width:90%;" value="20">
                             </div>
                             <button class="btn-save" onclick="updatePreferences()">Save Preferences</button>
+                        </div>
                     </div>
 
                     <!-- === Data Backup === -->
@@ -596,8 +585,6 @@
                         <div style="margin-bottom: 15px;">
                             <select id="transfer-officer-select" class="filter-select" style="width:100%;">
                                 <option value="">-- Choose Active Officer --</option>
-                                <option value="Chamod Madushanka (LIB-001)">Chamod Madushanka (LIB-001)</option>
-                                <option value="Nimali Silva (EMP002)">Nimali Silva (EMP002)</option>
                             </select>
                         </div>
                         <div class="modal-actions" style="justify-content: flex-start; gap: 10px;">
@@ -611,26 +598,22 @@
     </div>
 
     <!-- === Modals === -->
-    <div id="delete-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3>Are you sure?</h3>
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
-                <button class="btn-save btn-danger" onclick="closeDeleteModal()">Confirm</button>
+    
+    <!-- Add Return Modal -->
+    <div id="admin-return-modal" class="modal-overlay" style="display: none; z-index: 9999;">
+        <div class="modal-content" style="text-align: center; max-width: 400px;">
+            <h3 style="color: #3b82f6; margin-bottom: 15px;">Process Return</h3>
+            <p><strong>Book:</strong> <span id="ret-book-title"></span> (<span id="ret-book-id"></span>)</p>
+            <p><strong>Student:</strong> <span id="ret-student-name"></span> (<span id="ret-student-id"></span>)</p>
+            <div style="background: #f1f5f9; padding: 10px; margin: 15px 0; border-radius: 8px;">
+                <p style="margin: 0; color: #ef4444; font-size: 18px; font-weight: bold;">Fine: Rs. <span id="ret-fine-amount">0.00</span></p>
+            </div>
+            <div class="modal-actions" style="justify-content: center; gap: 15px;">
+                <button class="btn-cancel" onclick="closeAdminReturnModal()">Cancel</button>
+                <button class="btn-save" style="background: #10b981;" onclick="confirmProcessReturn()">Confirm Return</button>
             </div>
         </div>
     </div>
-
-    <div id="password-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3>Change Temporary Password</h3>
-            <input id="password-modal-input" class="modal-input" type="password" placeholder="New Temporary Password">
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closePasswordModal()">Cancel</button>
-                <button class="btn-save" onclick="confirmPasswordChange()">Confirm</button>
-            </div>
-        </div>
-    </div>          
 
     <div id="profile-auth-modal" class="modal-overlay">
         <div class="modal-content">
@@ -654,6 +637,7 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="js/app.js?v=8"></script>
 </body>
 </html>

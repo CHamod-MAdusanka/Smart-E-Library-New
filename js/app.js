@@ -1,3 +1,7 @@
+let adminResTimerInterval = null;
+let adminBookScanner = null;
+let currentReturnData = null;
+
 // =========================================
 // === UI and Section Navigation ===
 // =========================================
@@ -20,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (catSel) catSel.addEventListener('change', updateBookIdPreview);
     if (rackIn) rackIn.addEventListener('input', updateBookIdPreview);
     
-    // Bind the missing Add Book Function!
+    // Bind the Add Book Function
     const addBookBtn = document.getElementById('book-add-button');
     if(addBookBtn) addBookBtn.addEventListener('click', addNewBook);
 
@@ -43,6 +47,13 @@ function showSection(sectionId) {
 
     const sidebar = document.getElementById('sidebar');
     if (window.innerWidth < 900 && sidebar) sidebar.classList.add('closed');
+
+    // Dynamically stop scanner if leaving return section
+    if (sectionId !== 'return-books' && adminBookScanner) {
+        adminBookScanner.clear().catch(e => console.log(e));
+        document.getElementById('admin-qr-reader').style.display = 'none';
+        adminBookScanner = null;
+    }
 
     // Dynamic fetch mapping
     switch(sectionId) {
@@ -293,7 +304,7 @@ async function rejectStudent(id) {
 }
 
 // =========================================
-// === Book Management ===
+// === Book Management & Auto QR ===
 // =========================================
 function updateBookIdPreview() {
     const cat = document.getElementById('book-category')?.value;
@@ -304,7 +315,6 @@ function updateBookIdPreview() {
     }
 }
 
-// --- MISSING FUNCTION ADDED HERE ---
 async function addNewBook() {
     const title = document.getElementById('book-title').value.trim();
     const author = document.getElementById('book-author').value.trim();
@@ -374,11 +384,51 @@ async function fetchAdminBooks() {
         if(data.status === 'success' && data.data.length > 0) {
             data.data.forEach(book => {
                 const cover = book.cover_img ? book.cover_img : 'static/covers/default.png';
+                
+                // Remove book table row
                 if(removeBody) removeBody.innerHTML += `<tr><td><img src="${cover}" width="40" height="60" style="object-fit: cover;"></td><td><strong>${book.book_id}</strong></td><td>${book.title}</td><td>${book.author}</td><td><button class="btn-danger" onclick="confirmDeleteBook('${book.book_id}', '${book.title.replace(/'/g, "\\'")}')">✖ Remove</button></td></tr>`;
-                if(invBody) invBody.innerHTML += `<tr><td><img src="${cover}" width="40" height="60" style="object-fit: cover;"></td><td>${book.book_id}</td><td>${book.title}</td><td>${book.author}</td><td>${book.category}</td><td>DB Data</td></tr>`;
+                
+                // Inventory table row (with Auto-Generated QR Code & Download Button)
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(book.book_id)}`;
+                
+                if(invBody) invBody.innerHTML += `<tr>
+                    <td><img src="${cover}" width="40" height="60" style="object-fit: cover; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></td>
+                    <td><strong>${book.book_id}</strong></td>
+                    <td>${book.title}</td>
+                    <td>${book.author}</td>
+                    <td><span class="status-badge" style="background:#e2e8f0; color:#475569;">${book.category}</span></td>
+                    <td style="text-align: center; vertical-align: middle;">
+                        <img src="${qrUrl}" alt="QR" width="55" height="55" style="border: 2px solid #e2e8f0; border-radius: 6px; margin-bottom: 5px; padding: 2px; background: white;"><br>
+                        <button class="btn-secondary" style="padding: 4px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 5px;" onclick="downloadBookQR('${qrUrl}', '${book.book_id}')">
+                            📥 Download
+                        </button>
+                    </td>
+                </tr>`;
             });
+        } else {
+            if(invBody) invBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No books found in inventory.</td></tr>';
         }
-    } catch(e) {}
+    } catch(e) { console.error("Error fetching books:", e); }
+}
+
+// Function to Download the QR Code Image
+async function downloadBookQR(qrUrl, bookId) {
+    try {
+        const response = await fetch(qrUrl);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `QR_${bookId}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+        alert("Failed to download QR code. Please check your internet connection.");
+    }
 }
 
 async function confirmDeleteBook(id, title) {
@@ -400,14 +450,44 @@ async function fetchAdminReservations() {
         const data = await response.json();
         const tbody = document.getElementById('admin-reservations-body');
         if(!tbody) return; tbody.innerHTML = '';
+        
+        if (adminResTimerInterval) clearInterval(adminResTimerInterval);
+
         if(data.status === 'success' && data.data.length > 0) {
             data.data.forEach(r => {
-                const badge = r.status === 'Pending' ? `<span class="status-badge" style="background: #fef08a; color: #854d0e;">Pending</span>` : `<span class="status-badge active">Approved</span>`;
-                const actionBtns = r.status === 'Pending' ? `<button class="btn-approve" onclick="approveReservation(${r.id})">✔ Approve</button> <button class="btn-danger" onclick="cancelAdminReservation(${r.id})">✖ Cancel</button>` : `<span style="color:#64748b;">Ready for Pickup</span>`;
-                tbody.innerHTML += `<tr><td>${r.full_name} <br><small>${r.student_id}</small></td><td>${r.title}</td><td>${r.request_date}</td><td>${badge}</td><td>${actionBtns}</td></tr>`;
+                const actionBtns = `<button class="btn-approve" onclick="approveReservation(${r.id})">✔ Approve</button> <button class="btn-danger" onclick="cancelAdminReservation(${r.id})">✖ Cancel</button>`;
+                tbody.innerHTML += `<tr>
+                    <td>${r.full_name} <br><small>${r.student_id}</small></td>
+                    <td>${r.title}</td>
+                    <td><span class="timer-badge admin-res-timer" data-time="${r.request_date}">Calculating...</span></td>
+                    <td>${actionBtns}</td>
+                </tr>`;
             });
-        } else { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No reservations found.</td></tr>'; }
+            startAdminReservationTimers();
+        } else { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No reservations found.</td></tr>'; }
     } catch(e) {}
+}
+
+function startAdminReservationTimers() {
+    const timers = document.querySelectorAll('.admin-res-timer');
+    adminResTimerInterval = setInterval(() => {
+        timers.forEach(timer => {
+            const reqTime = new Date(timer.getAttribute('data-time')).getTime();
+            const expTime = reqTime + (24 * 60 * 60 * 1000);
+            const now = new Date().getTime();
+            const diff = expTime - now;
+
+            if(diff <= 0) {
+                timer.innerText = "Expired (Auto-canceling...)";
+                timer.style.background = "#fee2e2"; timer.style.color = "#ef4444";
+            } else {
+                const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const m = Math.floor((diff / 1000 / 60) % 60);
+                timer.innerText = `${h}h ${m}m remaining`;
+                timer.style.background = "#fef08a"; timer.style.color = "#854d0e";
+            }
+        });
+    }, 1000);
 }
 
 async function approveReservation(resId) {
@@ -444,20 +524,26 @@ async function fetchActiveBorrowings() {
     } catch (e) {}
 }
 
+// Issue new book manually
 async function issueNewBook() {
     const studentId = document.getElementById('issue-student-id').value.trim();
     const bookId = document.getElementById('issue-book-id').value.trim();
-    if(!studentId || !bookId) { alert("Please enter both IDs."); return; }
-    
+
+    if (!studentId || !bookId) { alert("Please enter both Student ID and Book ID."); return; }
+
     try {
-        const response = await fetch('php/library_controller.php?action=issue_book', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: studentId, book_id: bookId }) });
-        const result = await response.json(); alert(result.message);
-        if(result.status === 'success') {
+        const response = await fetch('php/library_controller.php?action=manual_issue', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ student_id: studentId, book_id: bookId })
+        });
+        const result = await response.json();
+        alert(result.message);
+        if (result.status === 'success') {
             document.getElementById('issue-student-id').value = '';
             document.getElementById('issue-book-id').value = '';
-            fetchDashboardStats(); fetchActiveBorrowings(); showSection('active-borrowings');
+            fetchActiveBorrowings();
         }
-    } catch(e) {}
+    } catch (e) { console.error("Error issuing book manually", e); }
 }
 
 // =========================================
@@ -495,6 +581,88 @@ async function approveScanRequest(reqId) {
         alert(res.message);
         if(res.status === 'success') { fetchScanRequests(); fetchActiveBorrowings(); fetchDashboardStats(); }
     } catch(e) {}
+}
+
+// =========================================
+// === Returns Books (QR Scanner) ===
+// =========================================
+
+function startAdminScanner() {
+    const readerDiv = document.getElementById('admin-qr-reader');
+    readerDiv.style.display = 'block';
+
+    if (adminBookScanner) {
+        adminBookScanner.clear().then(() => {
+            initAdminScanner();
+        }).catch(e => {
+            initAdminScanner();
+        });
+    } else {
+        initAdminScanner();
+    }
+}
+
+function initAdminScanner() {
+    adminBookScanner = new Html5QrcodeScanner("admin-qr-reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+    adminBookScanner.render(onAdminScanSuccess, () => {});
+}
+
+function onAdminScanSuccess(decodedText) {
+    const scannedBookId = decodedText.trim();
+    
+    if(adminBookScanner) {
+        adminBookScanner.clear().then(() => {
+            document.getElementById('admin-qr-reader').style.display = 'none';
+            adminBookScanner = null;
+        }).catch(e => console.log(e));
+    }
+    
+    fetch('php/library_controller.php?action=get_return_details', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ book_id: scannedBookId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === 'success') {
+            currentReturnData = data.data;
+            document.getElementById('ret-book-title').innerText = currentReturnData.title;
+            document.getElementById('ret-book-id').innerText = currentReturnData.book_id;
+            document.getElementById('ret-student-name').innerText = currentReturnData.full_name;
+            document.getElementById('ret-student-id').innerText = currentReturnData.student_id;
+            document.getElementById('ret-fine-amount').innerText = currentReturnData.fine.toFixed(2);
+            
+            document.getElementById('admin-return-modal').style.display = 'flex';
+        } else {
+            alert(data.message); 
+        }
+    }).catch(err => { 
+        alert("System Error!"); 
+    });
+}
+
+function closeAdminReturnModal() {
+    document.getElementById('admin-return-modal').style.display = 'none';
+    currentReturnData = null;
+}
+
+function confirmProcessReturn() {
+    if(!currentReturnData) return;
+    
+    fetch('php/library_controller.php?action=process_return', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ borrowing_id: currentReturnData.borrowing_id, book_id: currentReturnData.book_id })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message);
+        closeAdminReturnModal();
+        if(data.status === 'success') {
+            fetchDashboardStats();
+            fetchActiveBorrowings();
+        }
+    });
 }
 
 // =========================================

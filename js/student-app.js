@@ -1,3 +1,32 @@
+// Add global interval variable at the top
+let resTimerInterval = null;
+let bookScanner = null;
+let scannedBookId = "";
+let isProcessingScan = false;
+
+// 🟢 ස්කෑනර් එකේ Laser Animation එකට අදාළ CSS කෝඩ් එක
+const style = document.createElement('style');
+style.innerHTML = `
+    .scanner-laser {
+        position: absolute;
+        width: 100%;
+        height: 3px;
+        background-color: #10b981;
+        box-shadow: 0 0 15px #10b981, 0 0 30px #10b981;
+        top: 0;
+        left: 0;
+        z-index: 10;
+        animation: scanline 2.5s infinite linear;
+    }
+    @keyframes scanline {
+        0% { top: 10%; opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { top: 90%; opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+
 // ==========================================
 // === Navigation and Layout ===
 // ==========================================
@@ -32,6 +61,13 @@ function showSection(sectionId) {
     document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
     if(window.event && window.event.currentTarget) {
         window.event.currentTarget.classList.add('active');
+    }
+
+    // Stop scanner if leaving the scan section
+    if (sectionId !== 'scan-request' && bookScanner) {
+        bookScanner.clear().catch(e => console.log(e));
+        document.getElementById('student-qr-reader').style.display = 'none';
+        bookScanner = null;
     }
 
     // Fetch data dynamically based on the active section
@@ -172,7 +208,7 @@ async function loadStudentProfileData() {
         const result = await response.json();
 
         if (result.status === "error") {
-            window.location.href = "student-login.html"; // Redirect if unauthorized
+            window.location.href = "student-login.html"; 
             return;
         }
 
@@ -429,20 +465,45 @@ async function fetchStudentReservations() {
         if(!tbody) return;
         tbody.innerHTML = '';
         
+        if (resTimerInterval) clearInterval(resTimerInterval);
+        
         if(data.status === 'success' && data.data.length > 0) {
             data.data.forEach(r => {
-                const badge = r.status === 'Pending' ? `<span class="status-badge" style="background: #fef08a; color: #854d0e;">Pending</span>` : `<span class="status-badge active">Approved</span>`;
                 tbody.innerHTML += `<tr>
                     <td>${r.title}</td>
                     <td>${r.request_date}</td>
-                    <td>${badge}</td>
+                    <td><span class="timer-badge res-timer" data-time="${r.request_date}">Calculating...</span></td>
                     <td><button class="btn-danger-sm" onclick="cancelReservation(${r.id})">Cancel</button></td>
                 </tr>`;
             });
+            startReservationTimers();
         } else {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No reservations found.</td></tr>';
         }
     } catch(e) {}
+}
+
+function startReservationTimers() {
+    const timers = document.querySelectorAll('.res-timer');
+    resTimerInterval = setInterval(() => {
+        timers.forEach(timer => {
+            const reqTime = new Date(timer.getAttribute('data-time')).getTime();
+            const expTime = reqTime + (24 * 60 * 60 * 1000);
+            const now = new Date().getTime();
+            const diff = expTime - now;
+
+            if(diff <= 0) {
+                timer.innerText = "Expired";
+                timer.style.background = "#fee2e2"; timer.style.color = "#ef4444";
+            } else {
+                const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const m = Math.floor((diff / 1000 / 60) % 60);
+                const s = Math.floor((diff / 1000) % 60);
+                timer.innerText = `${h}h ${m}m left`;
+                timer.style.background = "#dbeafe"; timer.style.color = "#1e40af";
+            }
+        });
+    }, 1000);
 }
 
 async function reserveBook(bookId) {
@@ -482,48 +543,111 @@ async function cancelReservation(resId) {
 // =========================================
 // === Self Checkout (Scan & Get Book) ===
 // =========================================
-let bookScanner = null;
-let scannedBookId = "";
 
 function startBookScanner() {
     const readerDiv = document.getElementById('student-qr-reader');
     readerDiv.style.display = 'block';
-    if (bookScanner) bookScanner.clear();
-
-    bookScanner = new Html5QrcodeScanner("student-qr-reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
-    bookScanner.render(onScanSuccess, onScanError);
+    
+    if (bookScanner) {
+        bookScanner.clear().then(() => {
+            initStudentScanner();
+        }).catch(e => {
+            initStudentScanner();
+        });
+    } else {
+        initStudentScanner();
+    }
 }
 
-function onScanSuccess(decodedText, decodedResult) {
+function initStudentScanner() {
+    isProcessingScan = false;
+    bookScanner = new Html5QrcodeScanner("student-qr-reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+    bookScanner.render(onScanSuccess, onScanError);
+
+    // 🟢 කැමරාව ඔන් වුණාට පස්සේ Laser ලයින් එක කැමරාව උඩින් දානවා
+    setTimeout(() => {
+        const qrRegion = document.getElementById('student-qr-reader__scan_region');
+        if (qrRegion) {
+            qrRegion.style.position = 'relative';
+            if(!document.getElementById('scan-laser-line')) {
+                const laser = document.createElement('div');
+                laser.className = 'scanner-laser';
+                laser.id = 'scan-laser-line';
+                qrRegion.appendChild(laser);
+            }
+        }
+    }, 500);
+}
+
+// 🟢 හිරවෙන්නේ නැති වෙන්න හදපු අලුත් Scan Success එක
+async function onScanSuccess(decodedText, decodedResult) {
+    if (isProcessingScan) return;
+    isProcessingScan = true;
+
     scannedBookId = decodedText.trim();
-    if(bookScanner) bookScanner.pause(true);
-    
-    fetch('php/library_controller.php?action=get_books')
-    .then(res => res.json())
-    .then(data => {
-        if(data.status === 'success') {
+
+    // සද්දෙ දානවා
+    try {
+        const audio = new Audio('https://www.soundjay.com/buttons/sounds/beep-07a.mp3');
+        audio.play().catch(e => console.log("Audio blocked"));
+    } catch(e) {}
+
+    // ඩේටාබේස් එකෙන් හොයන්න කලින් කැමරාව හරියටම ඕෆ් කරනවා 
+    if (bookScanner) {
+        try {
+            await bookScanner.clear();
+            document.getElementById('student-qr-reader').style.display = 'none';
+            bookScanner = null;
+        } catch(e) {
+            console.log("Scanner clear error", e);
+        }
+    }
+
+    // ඊටපස්සේ තමයි පොතේ විස්තර අරන් Modal එක පෙන්නන්නේ
+    try {
+        const res = await fetch('php/library_controller.php?action=get_books');
+        const data = await res.json();
+
+        if (data.status === 'success') {
             const book = data.data.find(b => b.book_id === scannedBookId);
-            if(book) {
-                if(book.status !== 'Available') {
-                    alert("Sorry, this book is currently unavailable.");
-                    restartScanner(); return;
+            if (book) {
+                if (book.status !== 'Available') {
+                    alert("Sorry, this book is currently unavailable. It might be already issued or reserved.");
+                    isProcessingScan = false;
+                    startBookScanner(); // ආපහු කැමරාව ඔන් කරනවා
+                    return;
                 }
+
+                // Modal එක ෂුවර් එකටම පෙන්නනවා
                 document.getElementById('qr-modal-title').innerText = book.title;
                 document.getElementById('qr-modal-author').innerText = book.author;
                 document.getElementById('qr-modal-cover').src = book.cover_img ? book.cover_img : 'static/covers/default.png';
                 document.getElementById('qr-book-modal').style.display = 'flex';
+                isProcessingScan = false;
+
             } else {
                 alert("Book not found in the Library Database!");
-                restartScanner();
+                isProcessingScan = false;
+                startBookScanner();
             }
         } else {
-            alert(data.message); restartScanner();
+            alert(data.message);
+            isProcessingScan = false;
+            startBookScanner();
         }
-    }).catch(err => { alert("System Error!"); restartScanner(); });
+    } catch (err) {
+        console.error("Fetch Error:", err);
+        alert("System Error: Database එකට කනෙක්ට් වෙන්න බෑ!");
+        isProcessingScan = false;
+        startBookScanner();
+    }
 }
 
-function onScanError(errorMessage) {}
+function onScanError(errorMessage) {
+    // Ignore normal scan errors
+}
 
+// 🟢 Database Error එක හදපු Get Book කෑල්ල
 function confirmGetBook() {
     const btn = document.getElementById('btn-confirm-get');
     btn.innerText = "Processing...";
@@ -534,7 +658,11 @@ function confirmGetBook() {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ book_id: scannedBookId })
     })
-    .then(res => res.json())
+    .then(async res => {
+        const text = await res.text();
+        try { return JSON.parse(text); } 
+        catch(e) { throw new Error(text); } 
+    })
     .then(data => {
         alert(data.message);
         document.getElementById('qr-book-modal').style.display = 'none';
@@ -545,14 +673,12 @@ function confirmGetBook() {
             fetchBooks();
             fetchStudentBorrowings();
             showSection('my-borrowings');
-            if(bookScanner) {
-                bookScanner.clear();
-                document.getElementById('student-qr-reader').style.display = 'none';
-            }
-        } else { restartScanner(); }
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Server Error: ඩේටාබේස් එකේ එරර් එකක්! php ෆයිල් එක අප්ඩේට් වුණාද බලන්න.");
+        btn.innerText = "Get Book";
+        btn.disabled = false;
     });
-}
-
-function restartScanner() {
-    if(bookScanner) bookScanner.resume();
 }

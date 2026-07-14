@@ -45,7 +45,8 @@ switch ($action) {
 
     case 'get_active_borrowings':
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
-        $sql = "SELECT b.title, bw.book_id, s.full_name as student_name, s.phone, bw.due_date, DATEDIFF(bw.due_date, CURDATE()) as days_left 
+        // Fetching email instead of phone now
+        $sql = "SELECT b.title, bw.book_id, s.full_name as student_name, s.email, bw.due_date, DATEDIFF(bw.due_date, CURDATE()) as days_left 
                 FROM borrowings bw JOIN books b ON bw.book_id = b.book_id JOIN students s ON bw.student_id = s.student_id WHERE bw.return_date IS NULL";
         $result = $conn->query($sql);
         $borrowings = [];
@@ -154,44 +155,39 @@ switch ($action) {
 
     case 'submit_scan_request':
         if (!isset($_SESSION['student_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
-        $studentId = $_SESSION['student_id']; $bookId = $data['book_id'];
+        $studentId = $_SESSION['student_id']; 
+        $bookId = $data['book_id'];
+        
         $conn->begin_transaction();
         try {
+            // 1. Check if book is available
             $stmt = $conn->prepare("SELECT status FROM books WHERE book_id=?");
-            $stmt->bind_param("s", $bookId); $stmt->execute(); $res = $stmt->get_result();
+            $stmt->bind_param("s", $bookId); 
+            $stmt->execute(); 
+            $res = $stmt->get_result();
+            
             if($res->num_rows === 0) throw new Exception("Book not found.");
+            if($res->fetch_assoc()['status'] !== 'Available') throw new Exception("Sorry, this book is not available right now.");
             
-            $stmt2 = $conn->prepare("INSERT INTO scan_requests (student_id, book_id, status) VALUES (?, ?, 'Pending')");
-            $stmt2->bind_param("ss", $studentId, $bookId); $stmt2->execute();
-            
-            $stmt3 = $conn->prepare("UPDATE books SET status='Reserved' WHERE book_id=?");
-            $stmt3->bind_param("s", $bookId); $stmt3->execute();
-            $conn->commit();
-            echo json_encode(["status" => "success", "message" => "Scan request sent successfully!"]);
-        } catch (Exception $e) { $conn->rollback(); echo json_encode(["status" => "error", "message" => $e->getMessage()]); }
-        break;
-
-    case 'approve_scan_request':
-        if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
-        $reqId = $data['request_id'];
-        $conn->begin_transaction();
-        try {
-            $stmt = $conn->prepare("SELECT student_id, book_id FROM scan_requests WHERE id=?");
-            $stmt->bind_param("i", $reqId); $stmt->execute(); $res = $stmt->get_result();
-            if($res->num_rows === 0) throw new Exception("Scan request not found.");
-            $row = $res->fetch_assoc(); $studentId = $row['student_id']; $bookId = $row['book_id'];
-            
+            // 2. Insert directly into borrowings (14 days)
             $stmt2 = $conn->prepare("INSERT INTO borrowings (student_id, book_id, issue_date, due_date) VALUES (?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 14 DAY))");
-            $stmt2->bind_param("ss", $studentId, $bookId); $stmt2->execute();
+            $stmt2->bind_param("ss", $studentId, $bookId); 
+            $stmt2->execute();
             
+            // 3. Update book status to Borrowed
             $stmt3 = $conn->prepare("UPDATE books SET status='Borrowed' WHERE book_id=?");
-            $stmt3->bind_param("s", $bookId); $stmt3->execute();
+            $stmt3->bind_param("s", $bookId); 
+            $stmt3->execute();
             
-            $stmt4 = $conn->prepare("DELETE FROM scan_requests WHERE id=?");
-            $stmt4->bind_param("i", $reqId); $stmt4->execute();
             $conn->commit();
-            echo json_encode(["status" => "success", "message" => "Scan request approved!"]);
-        } catch (Exception $e) { $conn->rollback(); echo json_encode(["status" => "error", "message" => "Error: " . $e->getMessage()]); }
+            
+            // 4. Success response
+            echo json_encode(["status" => "success", "message" => "Success! The book has been issued to you."]);
+            
+        } catch (Exception $e) { 
+            $conn->rollback(); 
+            echo json_encode(["status" => "error", "message" => $e->getMessage()]); 
+        }
         break;
 
     case 'get_books':
@@ -220,15 +216,6 @@ switch ($action) {
         $stmt->close();
         break;
 
-    case 'get_scan_requests':
-        $query = "SELECT sr.id, sr.student_id, s.full_name as student_name, sr.book_id, b.title as book_title, DATE_FORMAT(sr.request_time, '%Y-%m-%d %H:%i') as request_time 
-                FROM scan_requests sr JOIN students s ON sr.student_id = s.student_id JOIN books b ON sr.book_id = b.book_id WHERE sr.status = 'Pending' ORDER BY sr.request_time DESC";
-        $result = $conn->query($query);
-        $requests = [];
-        if ($result && $result->num_rows > 0) { while($row = $result->fetch_assoc()) { $requests[] = $row; } }
-        echo json_encode(["status" => "success", "data" => $requests]);
-        break;
-        
     // ==========================================
     // === QR SCANNER: GET RETURN DETAILS ===
     // ==========================================

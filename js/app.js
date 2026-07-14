@@ -1,4 +1,5 @@
 let adminResTimerInterval = null;
+let adminBorrowTimerInterval = null;
 let adminBookScanner = null;
 let currentReturnData = null;
 
@@ -66,8 +67,7 @@ function showSection(sectionId) {
         case 'add-book': 
         case 'remove-book': fetchAdminBooks(); break;
         case 'book-reservations': fetchAdminReservations(); break;
-        case 'active-borrowings': fetchActiveBorrowings(); break;
-        case 'scan-requests': fetchScanRequests(); break;
+        case 'active-books': fetchActiveBorrowedBooks(); break;
     }
 }
 
@@ -442,7 +442,63 @@ async function confirmDeleteBook(id, title) {
 }
 
 // =========================================
-// === Reservations and Borrowings ===
+// === Active Borrowed Books & Timer ===
+// =========================================
+async function fetchActiveBorrowedBooks() {
+    try {
+        const response = await fetch('php/library_controller.php?action=get_active_borrowings');
+        const data = await response.json();
+        const tbody = document.getElementById('active-books-body');
+        if(!tbody) return; 
+        tbody.innerHTML = '';
+        
+        if (adminBorrowTimerInterval) clearInterval(adminBorrowTimerInterval);
+
+        if(data.status === 'success' && data.data.length > 0) {
+            data.data.forEach(b => {
+                tbody.innerHTML += `<tr>
+                    <td><strong>${b.title}</strong><br><small style="color: #64748b;">ID: ${b.book_id}</small></td>
+                    <td>${b.student_name}</td>
+                    <td>${b.email}</td>
+                    <td><span class="timer-badge admin-borrow-timer" data-due="${b.due_date}">Calculating...</span></td>
+                </tr>`;
+            });
+            startAdminBorrowTimers();
+        } else { 
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No active borrowed books found.</td></tr>'; 
+        }
+    } catch(e) { console.error(e); }
+}
+
+function startAdminBorrowTimers() {
+    const timers = document.querySelectorAll('.admin-borrow-timer');
+    adminBorrowTimerInterval = setInterval(() => {
+        timers.forEach(timer => {
+            const dueDateStr = timer.getAttribute('data-due');
+            const expTime = new Date(dueDateStr + 'T23:59:59').getTime(); 
+            const now = new Date().getTime();
+            const diff = expTime - now;
+
+            if(diff <= 0) {
+                timer.innerText = "OVERDUE!";
+                timer.style.background = "#fee2e2"; 
+                timer.style.color = "#ef4444";
+            } else {
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const m = Math.floor((diff / 1000 / 60) % 60);
+                const s = Math.floor((diff / 1000) % 60);
+                
+                timer.innerText = `${d}d ${h}h ${m}m ${s}s left`;
+                timer.style.background = "#dbeafe"; 
+                timer.style.color = "#1e40af";
+            }
+        });
+    }, 1000);
+}
+
+// =========================================
+// === Reservations ===
 // =========================================
 async function fetchAdminReservations() {
     try {
@@ -495,7 +551,7 @@ async function approveReservation(resId) {
     try {
         const response = await fetch('php/library_controller.php?action=approve_reservation', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({reservation_id: resId}) });
         const res = await response.json(); alert(res.message);
-        if(res.status === 'success') { fetchAdminReservations(); fetchDashboardStats(); fetchActiveBorrowings(); }
+        if(res.status === 'success') { fetchAdminReservations(); fetchDashboardStats(); fetchActiveBorrowedBooks(); }
     } catch(e) {}
 }
 
@@ -505,81 +561,6 @@ async function cancelAdminReservation(resId) {
         const response = await fetch('php/library_controller.php?action=cancel_reservation', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({reservation_id: resId}) });
         const res = await response.json(); alert(res.message);
         if(res.status === 'success') fetchAdminReservations();
-    } catch(e) {}
-}
-
-async function fetchActiveBorrowings() {
-    try {
-        const response = await fetch('php/library_controller.php?action=get_active_borrowings');
-        const data = await response.json();
-        const tbody = document.getElementById('borrowings-body');
-        if(!tbody) return; tbody.innerHTML = '';
-        if(data.status === 'success' && data.data.length > 0) {
-            data.data.forEach(b => {
-                tbody.innerHTML += `<tr><td>${b.title}</td><td><strong>${b.book_id}</strong></td><td>${b.student_name}</td>
-                    <td>${b.days_left >= 0 ? `<span class="timer-badge timer-safe">${b.days_left} Days Left</span>` : `<span class="timer-badge timer-danger">Overdue</span>`}</td>
-                    <td>${b.overdue_days} Days</td><td class="fine-text">Rs. ${b.fine.toFixed(2)}</td><td>${b.phone}</td></tr>`;
-            });
-        } else { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No active borrowings found.</td></tr>'; }
-    } catch (e) {}
-}
-
-// Issue new book manually
-async function issueNewBook() {
-    const studentId = document.getElementById('issue-student-id').value.trim();
-    const bookId = document.getElementById('issue-book-id').value.trim();
-
-    if (!studentId || !bookId) { alert("Please enter both Student ID and Book ID."); return; }
-
-    try {
-        const response = await fetch('php/library_controller.php?action=manual_issue', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ student_id: studentId, book_id: bookId })
-        });
-        const result = await response.json();
-        alert(result.message);
-        if (result.status === 'success') {
-            document.getElementById('issue-student-id').value = '';
-            document.getElementById('issue-book-id').value = '';
-            fetchActiveBorrowings();
-        }
-    } catch (e) { console.error("Error issuing book manually", e); }
-}
-
-// =========================================
-// === Scan Requests Management ===
-// =========================================
-async function fetchScanRequests() {
-    try {
-        const response = await fetch('php/library_controller.php?action=get_scan_requests');
-        const data = await response.json();
-        const tbody = document.getElementById('admin-scan-requests-body');
-        if(!tbody) return; tbody.innerHTML = '';
-        
-        if(data.status === 'success' && data.data.length > 0) {
-            data.data.forEach(r => {
-                const actionBtns = `<button class="btn-approve" onclick="approveScanRequest(${r.id})">✔ Approve & Issue</button>`;
-                tbody.innerHTML += `<tr>
-                    <td>${r.student_name} <br><small>${r.student_id}</small></td>
-                    <td>${r.book_title} <br><small>${r.book_id}</small></td>
-                    <td>${r.request_time}</td>
-                    <td><span class="status-badge" style="background: #fef08a; color: #854d0e;">Pending</span></td>
-                    <td>${actionBtns}</td>
-                </tr>`;
-            });
-        } else { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No scan requests found.</td></tr>'; }
-    } catch(e) {}
-}
-
-async function approveScanRequest(reqId) {
-    if(!confirm('Are you sure you want to approve this request and issue the book for 14 days?')) return;
-    try {
-        const response = await fetch('php/library_controller.php?action=approve_scan_request', { 
-            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({request_id: reqId}) 
-        });
-        const res = await response.json(); 
-        alert(res.message);
-        if(res.status === 'success') { fetchScanRequests(); fetchActiveBorrowings(); fetchDashboardStats(); }
     } catch(e) {}
 }
 
@@ -662,13 +643,13 @@ function confirmProcessReturn() {
         closeAdminReturnModal();
         if(data.status === 'success') {
             fetchDashboardStats();
-            fetchActiveBorrowings();
+            fetchActiveBorrowedBooks();
         }
     });
 }
 
 // =========================================
-// === QR File Upload Handler (අලුත් කොටස) ===
+// === QR File Upload Handler ===
 // =========================================
 function handleAdminQrFileUpload(event) {
     if (event.target.files.length === 0) return;
@@ -678,14 +659,11 @@ function handleAdminQrFileUpload(event) {
 
     html5QrCode.scanFile(file, true)
         .then(decodedText => {
-            // කැමරාව ඔන් වෙලා තියෙනවද කියලා බලලා ඒක නවත්තනවා
             if(adminBookScanner) {
                 adminBookScanner.clear().catch(e => console.log(e));
                 document.getElementById('admin-qr-reader').style.display = 'none';
                 adminBookScanner = null;
             }
-            
-            // සාර්ථකව කියෙව්වට පස්සේ සාමාන්‍ය function එකට දත්ත යවනවා
             onAdminScanSuccess(decodedText);
         })
         .catch(err => {
@@ -693,7 +671,6 @@ function handleAdminQrFileUpload(event) {
             console.error("QR Scan Error:", err);
         });
         
-    // එකම පින්තූරය ආයෙත් select කරන්න ඕනේ වුණොත් input එක clear කරනවා
     event.target.value = ""; 
 }
 

@@ -575,15 +575,27 @@ function populateBookModal(book) {
     const coverEl = document.getElementById('qr-modal-cover');
     const modalEl = document.getElementById('qr-book-modal');
 
+    if (!modalEl) {
+        console.error('QR checkout modal container is missing from the page.');
+        return;
+    }
+
     if (titleEl) titleEl.textContent = book.title || 'Untitled Book';
     if (authorEl) authorEl.textContent = book.author || 'Unknown Author';
     if (coverEl) coverEl.src = book.cover_img ? book.cover_img : 'static/covers/default.png';
-    if (modalEl) modalEl.style.display = 'flex';
+
+    modalEl.style.display = 'flex';
+    modalEl.style.alignItems = 'center';
+    modalEl.style.justifyContent = 'center';
+    modalEl.setAttribute('aria-hidden', 'false');
 }
 
 function closeBookModal() {
     const modalEl = document.getElementById('qr-book-modal');
-    if (modalEl) modalEl.style.display = 'none';
+    if (modalEl) {
+        modalEl.style.display = 'none';
+        modalEl.setAttribute('aria-hidden', 'true');
+    }
 }
 
 async function handleBookScan(decodedText) {
@@ -674,4 +686,28 @@ function confirmGetBook() {
         btn.textContent = 'Get Book';
         btn.disabled = false;
     });
+}
+
+// =========================================
+// === QR File Upload Handler (Student) ===
+// =========================================
+function handleStudentQrFileUpload(event) {
+    if (event.target.files.length === 0) return;
+    
+    const file = event.target.files[0];
+    const html5QrCode = new Html5Qrcode("student-qr-reader");
+
+    html5QrCode.scanFile(file, true)
+        .then(decodedText => {
+            if (window.StudentBookScanner && typeof window.StudentBookScanner.isActive === 'function' && window.StudentBookScanner.isActive()) {
+                window.StudentBookScanner.stop({ resetProcessing: true }).catch(e => console.log(e));
+            }
+            handleBookScan(decodedText);
+        })
+        .catch(err => {
+            alert("QR කේතය කියවීමට නොහැකි විය! කරුණාකර පැහැදිලි පින්තූරයක් තෝරන්න.");
+            console.error("QR Scan Error:", err);
+        });
+        
+    event.target.value = ""; 
 }

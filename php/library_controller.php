@@ -228,6 +228,64 @@ switch ($action) {
         if ($result && $result->num_rows > 0) { while($row = $result->fetch_assoc()) { $requests[] = $row; } }
         echo json_encode(["status" => "success", "data" => $requests]);
         break;
+        
+    // ==========================================
+    // === QR SCANNER: GET RETURN DETAILS ===
+    // ==========================================
+    case 'get_return_details':
+        if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
+        $bookId = $data['book_id'];
+        
+        $sql = "SELECT bw.id as borrowing_id, bw.book_id, b.title, s.student_id, s.full_name, bw.due_date, DATEDIFF(CURDATE(), bw.due_date) as overdue_days 
+                FROM borrowings bw 
+                JOIN books b ON bw.book_id = b.book_id 
+                JOIN students s ON bw.student_id = s.student_id 
+                WHERE bw.book_id = ? AND bw.return_date IS NULL";
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $bookId); 
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            $days = (int)$row['overdue_days'];
+            $row['overdue_days'] = $days > 0 ? $days : 0;
+            
+            $row['fine'] = $row['overdue_days'] * 10; 
+            
+            echo json_encode(["status" => "success", "data" => $row]);
+        } else {
+            echo json_encode(["status" => "error", "message" => "මෙම පොත දැනට කිසිවෙකුට නිකුත් කර නොමැත (No active borrowing found)."]);
+        }
+        $stmt->close();
+        break;
+
+    // ==========================================
+    // === QR SCANNER: PROCESS RETURN ===
+    // ==========================================
+    case 'process_return':
+        if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
+        $borrowingId = $data['borrowing_id'];
+        $bookId = $data['book_id'];
+        
+        $conn->begin_transaction();
+        try {
+            $stmt1 = $conn->prepare("UPDATE borrowings SET return_date = CURDATE() WHERE id = ?");
+            $stmt1->bind_param("i", $borrowingId); 
+            $stmt1->execute();
+            
+            $stmt2 = $conn->prepare("UPDATE books SET status = 'Available' WHERE book_id = ?");
+            $stmt2->bind_param("s", $bookId); 
+            $stmt2->execute();
+            
+            $conn->commit();
+            echo json_encode(["status" => "success", "message" => "පොත සාර්ථකව Return කරන ලදී!"]);
+        } catch (Exception $e) {
+            $conn->rollback();
+            echo json_encode(["status" => "error", "message" => "System Error: පොත Return කිරීම අසාර්ථකයි."]);
+        }
+        break;
 }
 $conn->close();
 ?>

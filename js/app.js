@@ -389,7 +389,7 @@ async function fetchAdminBooks() {
                 if(removeBody) removeBody.innerHTML += `<tr><td><img src="${cover}" width="40" height="60" style="object-fit: cover;"></td><td><strong>${book.book_id}</strong></td><td>${book.title}</td><td>${book.author}</td><td><button class="btn-danger" onclick="confirmDeleteBook('${book.book_id}', '${book.title.replace(/'/g, "\\'")}')">✖ Remove</button></td></tr>`;
                 
                 // Inventory table row (with Auto-Generated QR Code & Download Button)
-                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(book.book_id)}`;
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(book.book_id)}`;
                 
                 if(invBody) invBody.innerHTML += `<tr>
                     <td><img src="${cover}" width="40" height="60" style="object-fit: cover; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></td>
@@ -603,7 +603,9 @@ function startAdminScanner() {
 }
 
 function initAdminScanner() {
-    adminBookScanner = new Html5QrcodeScanner("admin-qr-reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+    adminBookScanner = new Html5QrcodeScanner("admin-qr-reader", { 
+        fps: 10 
+    }, false);
     adminBookScanner.render(onAdminScanSuccess, () => {});
 }
 
@@ -663,6 +665,36 @@ function confirmProcessReturn() {
             fetchActiveBorrowings();
         }
     });
+}
+
+// =========================================
+// === QR File Upload Handler (අලුත් කොටස) ===
+// =========================================
+function handleAdminQrFileUpload(event) {
+    if (event.target.files.length === 0) return;
+    
+    const file = event.target.files[0];
+    const html5QrCode = new Html5Qrcode("admin-qr-reader");
+
+    html5QrCode.scanFile(file, true)
+        .then(decodedText => {
+            // කැමරාව ඔන් වෙලා තියෙනවද කියලා බලලා ඒක නවත්තනවා
+            if(adminBookScanner) {
+                adminBookScanner.clear().catch(e => console.log(e));
+                document.getElementById('admin-qr-reader').style.display = 'none';
+                adminBookScanner = null;
+            }
+            
+            // සාර්ථකව කියෙව්වට පස්සේ සාමාන්‍ය function එකට දත්ත යවනවා
+            onAdminScanSuccess(decodedText);
+        })
+        .catch(err => {
+            alert("QR කේතය කියවීමට නොහැකි විය! කරුණාකර පැහැදිලි පින්තූරයක් තෝරන්න.");
+            console.error("QR Scan Error:", err);
+        });
+        
+    // එකම පින්තූරය ආයෙත් select කරන්න ඕනේ වුණොත් input එක clear කරනවා
+    event.target.value = ""; 
 }
 
 // =========================================

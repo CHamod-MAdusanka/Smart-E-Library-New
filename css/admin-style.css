@@ -118,6 +118,28 @@ body {
 .dropdown-content.show { display: block; }
 
 /* ========================================= */
+.toast-container {
+    position: absolute;
+    top: 70px;
+    right: 25px;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.toast-message {
+    background: rgba(15, 23, 42, 0.95);
+    color: white;
+    border-radius: 10px;
+    padding: 12px 16px;
+    min-width: 260px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    animation: toast-show 0.25s ease-out;
+}
+@keyframes toast-show {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 /* === Container and Sidebar === */
 /* ========================================= */
 .dashboard-container { display: flex; height: calc(100vh - 70px); overflow: hidden; }
@@ -153,6 +175,10 @@ body {
 .submenu.active { display: block; }
 .submenu li { padding: 12px 25px 12px 40px; font-size: 12px; color: #9CA3AF; transition: 0.2s; cursor: pointer; text-transform: none; letter-spacing: normal;}
 .submenu li:hover { color: var(--text-light); background: rgba(255,255,255,0.05);}
+
+/* Small badge / dot shown next to sidebar items */
+.sidebar-badge { display: inline-block; min-width: 16px; height: 16px; line-height: 16px; font-size: 11px; padding: 0 5px; border-radius: 999px; background: #ef4444; color: white; text-align: center; margin-left: 8px; vertical-align: middle; font-weight: 700; }
+.sidebar-dot { width: 10px; height: 10px; background: #ef4444; display: inline-block; border-radius: 50%; margin-left: 8px; vertical-align: middle; }
 
 .sidebar-icon { width: 20px; height: 20px; margin-right: 10px; vertical-align: middle; }
 

@@ -23,12 +23,13 @@ switch ($action) {
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("s", $studentId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $stmt->store_result();
 
-            if ($result->num_rows === 1) {
-                $user = $result->fetch_assoc();
-                if ($studentPassword === $user['password']) {
-                    $_SESSION['student_id'] = $user['student_id'];
+            if ($stmt->num_rows === 1) {
+                $stmt->bind_result($f_student_id, $f_password);
+                $stmt->fetch();
+                if ($studentPassword === $f_password) {
+                    $_SESSION['student_id'] = $f_student_id;
                     header("Location: ../student-dashboard.html");
                     exit();
                 } else {
@@ -53,13 +54,14 @@ switch ($action) {
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("s", $adminId);
             $stmt->execute();
-            $result = $stmt->get_result();
+            $stmt->store_result();
 
-            if ($result->num_rows === 1) {
-                $user = $result->fetch_assoc();
-                if ($adminPassword === $user['password']) {
-                    $_SESSION['admin_id'] = $user['work_id'];
-                    if ($user['role'] === 'Head Admin') {
+            if ($stmt->num_rows === 1) {
+                $stmt->bind_result($f_work_id, $f_password, $f_role);
+                $stmt->fetch();
+                if ($adminPassword === $f_password) {
+                    $_SESSION['admin_id'] = $f_work_id;
+                    if ($f_role === 'Head Admin') {
                         header("Location: ../head-dashboard.html");
                     } else {
                         header("Location: ../admin-dashboard.html");
@@ -112,6 +114,15 @@ switch ($action) {
             } else {
                 echo "Error saving data: " . $conn->error;
             }
+            // Create a notification for admin about this new registration
+            $conn->query("CREATE TABLE IF NOT EXISTS notifications (id INT AUTO_INCREMENT PRIMARY KEY, type VARCHAR(50) DEFAULT NULL, reference_id VARCHAR(100) DEFAULT NULL, message TEXT DEFAULT NULL, is_read TINYINT(1) DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+            $notifStmt = $conn->prepare("INSERT INTO notifications (type, reference_id, message, is_read) VALUES (?, ?, ?, 0)");
+            $nType = 'registration';
+            $nRef = $newStudentId;
+            $nMsg = "New student registration: {$fullName} ({$newStudentId})";
+            $notifStmt->bind_param("sss", $nType, $nRef, $nMsg);
+            $notifStmt->execute();
+            $notifStmt->close();
             $stmt->close();
         }
         break;
@@ -131,9 +142,14 @@ switch ($action) {
         $stmt = $conn->prepare("SELECT password FROM students WHERE student_id = ?");
         $stmt->bind_param("s", $studentId);
         $stmt->execute();
-        $user = $stmt->get_result()->fetch_assoc();
+        $stmt->store_result();
+        $db_password = null;
+        if ($stmt->num_rows === 1) {
+            $stmt->bind_result($db_password);
+            $stmt->fetch();
+        }
 
-        if($user['password'] !== $curr) {
+        if($db_password !== $curr) {
             echo json_encode(["status" => "error", "message" => "Incorrect current password!"]);
             exit();
         }
@@ -163,9 +179,14 @@ switch ($action) {
         $stmt = $conn->prepare("SELECT password FROM admins WHERE work_id = ?");
         $stmt->bind_param("s", $adminId);
         $stmt->execute();
-        $user = $stmt->get_result()->fetch_assoc();
+        $stmt->store_result();
+        $db_password = null;
+        if ($stmt->num_rows === 1) {
+            $stmt->bind_result($db_password);
+            $stmt->fetch();
+        }
 
-        if($user['password'] !== $curr) {
+        if($db_password !== $curr) {
             echo json_encode(["status" => "error", "message" => "Incorrect current password!"]);
             exit();
         }

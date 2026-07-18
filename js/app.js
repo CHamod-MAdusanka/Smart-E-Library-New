@@ -2,6 +2,8 @@ let adminResTimerInterval = null;
 let adminBorrowTimerInterval = null;
 let adminBookScanner = null;
 let currentReturnData = null;
+let lastUnreadNotificationCount = 0;
+let hasLoadedDashboardStats = false;
 
 // =========================================
 // === UI and Section Navigation ===
@@ -18,6 +20,9 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchDashboardStats();
     loadPreferences();
     loadTransferOfficers();
+
+    // Poll dashboard stats periodically to update notification badge counts
+    setInterval(fetchDashboardStats, 10000);
     
     // Add Event Listeners for New Books
     const catSel = document.getElementById('book-category');
@@ -56,18 +61,35 @@ function showSection(sectionId) {
         adminBookScanner = null;
     }
 
-    // Dynamic fetch mapping
+    // Clear specific badges when viewing the corresponding section
     switch(sectionId) {
         case 'home': fetchDashboardStats(); break;
-        case 'view-officers': 
+        case 'view-officers':
         case 'remove-officer': fetchOfficers(); break;
-        case 'view-members': 
-        case 'remove-member': fetchAllStudents(); break;
-        case 'approve-registrations': fetchPendingStudents(); break;
-        case 'add-book': 
+        case 'view-members':
+        case 'remove-member':
+            fetchAllStudents();
+            markSidebarBadgeSeen('pending_registrations');
+            clearSidebarBadge('badge-manage-students');
+            break;
+        case 'approve-registrations':
+            fetchPendingStudents();
+            markSidebarBadgeSeen('pending_registrations');
+            clearSidebarBadge('badge-approvals');
+            clearSidebarBadge('badge-manage-students');
+            break;
+        case 'add-book':
         case 'remove-book': fetchAdminBooks(); break;
-        case 'book-reservations': fetchAdminReservations(); break;
-        case 'active-books': fetchActiveBorrowedBooks(); break;
+        case 'book-reservations':
+            fetchAdminReservations();
+            markSidebarBadgeSeen('book_reservations');
+            clearSidebarBadge('badge-reservations');
+            break;
+        case 'active-books':
+            fetchActiveBorrowedBooks();
+            markSidebarBadgeSeen('active_borrowings');
+            clearSidebarBadge('badge-active');
+            break;
     }
 }
 
@@ -150,30 +172,144 @@ async function fetchDashboardStats() {
             document.getElementById('stat-books-issued').innerText = "Books Issued: " + data.data.books_issued;
 
             const pendingCount = parseInt(data.data.pending_approvals);
-            const badge = document.getElementById('notif-badge');
-            const notifDropdown = document.getElementById('notification-dropdown');
+            const pendingResCount = parseInt(data.data.pending_reservations || 0);
+            const activeBorrowCount = parseInt(data.data.active_borrowings || 0);
+            const unreadNotifications = parseInt(data.data.unread_notifications || 0);
+            const unreadRegistrations = parseInt(data.data.unread_registrations || 0);
+            const unreadReservations = parseInt(data.data.unread_reservations || 0);
+            const unreadBorrows = parseInt(data.data.unread_borrows || 0);
 
-            if (badge && notifDropdown) {
-                if (pendingCount > 0) {
+            const badge = document.getElementById('notif-badge');
+            const badgeManageStudents = document.getElementById('badge-manage-students');
+            const badgeApprovals = document.getElementById('badge-approvals');
+            const badgeReservations = document.getElementById('badge-reservations');
+            const badgeActive = document.getElementById('badge-active');
+
+            // Update main bell (unread notifications only). Dropdown content is loaded on bell click.
+            if (badge) {
+                if (unreadNotifications > 0) {
                     badge.style.display = 'inline-block';
-                    badge.innerText = pendingCount;
-                    notifDropdown.innerHTML = `
-                        <div class="notif-item" style="cursor: pointer; padding: 10px; border-bottom: 1px solid #eee;" onclick="showSection('approve-registrations')">
-                            <strong style="color: #ef4444;">🔔 ${pendingCount} New Registration(s)!</strong>
-                            <p style="margin: 5px 0 0 0; font-size: 12px; color: #64748b;">You have ${pendingCount} student(s) waiting for verification. Click to review.</p>
-                        </div>
-                    `;
+                    badge.innerText = unreadNotifications;
                 } else {
                     badge.style.display = 'none';
-                    notifDropdown.innerHTML = `
-                        <div class="notif-item" style="text-align:center; padding: 15px; color:#94a3b8;">
-                            <p style="margin: 0; font-size: 13px;">No new notifications right now.</p>
-                        </div>
-                    `;
                 }
             }
+
+            // Update sidebar badges using persistent unread/seen notification state
+            if (badgeManageStudents) {
+                if (unreadRegistrations > 0) { badgeManageStudents.style.display = 'inline-block'; badgeManageStudents.innerText = unreadRegistrations; }
+                else { badgeManageStudents.style.display = 'none'; }
+            }
+            if (badgeApprovals) {
+                if (unreadRegistrations > 0) { badgeApprovals.style.display = 'inline-block'; badgeApprovals.innerText = unreadRegistrations; }
+                else { badgeApprovals.style.display = 'none'; }
+            }
+            if (badgeReservations) {
+                if (unreadReservations > 0) { badgeReservations.style.display = 'inline-block'; badgeReservations.innerText = unreadReservations; }
+                else { badgeReservations.style.display = 'none'; }
+            }
+            if (badgeActive) {
+                if (unreadBorrows > 0) { badgeActive.style.display = 'inline-block'; badgeActive.innerText = unreadBorrows; }
+                else { badgeActive.style.display = 'none'; }
+            }
+
+            if (hasLoadedDashboardStats && unreadNotifications > lastUnreadNotificationCount) {
+                const newCount = unreadNotifications - lastUnreadNotificationCount;
+                showToast(`You have ${newCount} new notification${newCount === 1 ? '' : 's'}.`);
+            }
+            lastUnreadNotificationCount = unreadNotifications;
+            hasLoadedDashboardStats = true;
         }
     } catch (e) {}
+}
+
+// =========================================
+// === Notifications Fetch / Mark Read ===
+// =========================================
+// Connected to admin bell UI in admin-dashboard.html / head-dashboard.html
+async function fetchNotifications() {
+    try {
+        const res = await fetch('php/system_controller.php?action=get_notifications');
+        const data = await res.json();
+        if (data.status === 'success') {
+            const notifDropdown = document.getElementById('notification-dropdown');
+            if (!notifDropdown) return data;
+            if (data.data.notifications.length === 0) {
+                notifDropdown.innerHTML = `<div class="notif-item" style="text-align:center; padding: 15px; color:#94a3b8;"><p style="margin: 0; font-size: 13px;">No recent notifications.</p></div>`;
+                return data;
+            }
+            let html = '';
+            data.data.notifications.forEach(n => {
+                const when = new Date(n.created_at).toLocaleString();
+                html += `<div class="notif-item" style="cursor:default; padding:10px; border-bottom:1px solid #eee;"><strong style="color:#0f172a;">${n.message}</strong><p style="margin:5px 0 0 0; font-size:12px;color:#64748b;">${when}</p></div>`;
+            });
+            notifDropdown.innerHTML = html;
+            return data;
+        }
+    } catch (e) { console.error('Fetch notifications failed', e); }
+    return null;
+}
+
+async function markNotificationsRead() {
+    try {
+        await fetch('php/system_controller.php?action=mark_notifications_read', { method: 'POST' });
+    } catch (e) { console.error('Mark notifications read failed', e); }
+}
+
+async function markNotificationsReadByType(type) {
+    try {
+        await fetch('php/system_controller.php?action=mark_notifications_read_by_type', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type })
+        });
+        const badge = document.getElementById('notif-badge');
+        if (badge) badge.style.display = 'none';
+    } catch (e) { console.error('Mark notifications read by type failed', e); }
+}
+
+async function markSidebarBadgeSeen(section) {
+    try {
+        await fetch('php/system_controller.php?action=mark_sidebar_seen', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ section })
+        });
+    } catch (e) {
+        console.error('Mark sidebar badge section seen failed', e);
+    }
+}
+
+function clearSidebarBadge(elementId) {
+    const el = document.getElementById(elementId);
+    if (el) { el.style.display = 'none'; el.innerText = '0'; }
+}
+
+function showToast(message) {
+    const container = document.getElementById('notification-toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast-message';
+    toast.innerText = message;
+    container.appendChild(toast);
+    window.setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        window.setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+    }, 4000);
+}
+
+function onBellClick(e) {
+    const notifDropdown = document.getElementById('notification-dropdown');
+    if (!notifDropdown) return toggleDropdown('notification-dropdown');
+    // If already open, just close
+    if (notifDropdown.classList.contains('show')) { notifDropdown.classList.remove('show'); return; }
+    // Open, fetch latest notifications, and mark them read (hide badge)
+    fetchNotifications().then(() => {
+        notifDropdown.classList.add('show');
+        markNotificationsRead();
+        const badge = document.getElementById('notif-badge'); if (badge) badge.style.display = 'none';
+    });
 }
 
 // =========================================
@@ -571,33 +707,57 @@ async function cancelAdminReservation(resId) {
 function startAdminScanner() {
     const readerDiv = document.getElementById('admin-qr-reader');
     readerDiv.style.display = 'block';
-
-    if (adminBookScanner) {
-        adminBookScanner.clear().then(() => {
+    if (adminBookScanner && typeof adminBookScanner.stop === 'function') {
+        adminBookScanner.stop().then(() => {
+            try { adminBookScanner.clear(); } catch(e) {}
             initAdminScanner();
-        }).catch(e => {
-            initAdminScanner();
-        });
+        }).catch(e => { initAdminScanner(); });
     } else {
         initAdminScanner();
     }
 }
 
 function initAdminScanner() {
-    adminBookScanner = new Html5QrcodeScanner("admin-qr-reader", { 
-        fps: 10 
-    }, false);
-    adminBookScanner.render(onAdminScanSuccess, () => {});
+    // Use Html5Qrcode to start camera explicitly for more reliable live scanning
+    const html5QrCode = new Html5Qrcode("admin-qr-reader");
+    adminBookScanner = html5QrCode;
+
+    Html5Qrcode.getCameras().then(cameras => {
+        if (cameras && cameras.length) {
+            const cameraId = cameras[0].id;
+            html5QrCode.start(cameraId, { fps: 10, qrbox: 250 }, (decodedText) => {
+                onAdminScanSuccess(decodedText);
+            }, (err) => {
+                // scan error callback
+            }).catch(err => {
+                console.error('Failed to start camera scanner:', err);
+                alert('Unable to access camera for scanning.');
+            });
+        } else {
+            alert('No camera devices found.');
+        }
+    }).catch(err => {
+        console.error('Camera query failed', err);
+        alert('Unable to access camera devices.');
+    });
 }
 
 function onAdminScanSuccess(decodedText) {
     const scannedBookId = decodedText.trim();
     
     if(adminBookScanner) {
-        adminBookScanner.clear().then(() => {
+        // Stop camera and clear UI
+        if (typeof adminBookScanner.stop === 'function') {
+            adminBookScanner.stop().then(() => {
+                try { adminBookScanner.clear(); } catch(e) {}
+                document.getElementById('admin-qr-reader').style.display = 'none';
+                adminBookScanner = null;
+            }).catch(e => { console.log(e); });
+        } else if (typeof adminBookScanner.clear === 'function') {
+            try { adminBookScanner.clear(); } catch(e) {}
             document.getElementById('admin-qr-reader').style.display = 'none';
             adminBookScanner = null;
-        }).catch(e => console.log(e));
+        }
     }
     
     fetch('php/library_controller.php?action=get_return_details', {
@@ -659,10 +819,11 @@ function handleAdminQrFileUpload(event) {
 
     html5QrCode.scanFile(file, true)
         .then(decodedText => {
-            if(adminBookScanner) {
-                adminBookScanner.clear().catch(e => console.log(e));
-                document.getElementById('admin-qr-reader').style.display = 'none';
+            // If a live scanner was running, stop and clear it
+            if (adminBookScanner && typeof adminBookScanner.stop === 'function') {
+                adminBookScanner.stop().then(() => { try { adminBookScanner.clear(); } catch(e) {} }).catch(() => {});
                 adminBookScanner = null;
+                document.getElementById('admin-qr-reader').style.display = 'none';
             }
             onAdminScanSuccess(decodedText);
         })

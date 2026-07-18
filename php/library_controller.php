@@ -108,6 +108,15 @@ switch ($action) {
             // Using NOW() for 24 hour timer
             $stmt = $conn->prepare("INSERT INTO reservations (student_id, book_id, request_date, status) VALUES (?, ?, NOW(), 'Pending')");
             $stmt->bind_param("ss", $studentId, $bookId); $stmt->execute();
+            $reservationId = $conn->insert_id;
+            // Create a notification for admins about this reservation
+            $conn->query("CREATE TABLE IF NOT EXISTS notifications (id INT AUTO_INCREMENT PRIMARY KEY, type VARCHAR(50) DEFAULT NULL, reference_id VARCHAR(100) DEFAULT NULL, message TEXT DEFAULT NULL, is_read TINYINT(1) DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+            $notifStmt = $conn->prepare("INSERT INTO notifications (type, reference_id, message, is_read) VALUES (?, ?, ?, 0)");
+            $msg = "New reservation request by {$studentId} for book {$bookId}";
+            $t = 'reservation';
+            $notifStmt->bind_param("sss", $t, $reservationId, $msg);
+            $notifStmt->execute();
+            $notifStmt->close();
             $conn->commit();
             echo json_encode(["status" => "success", "message" => "Book reserved! You have 24 hours to collect it."]);
         } catch (Exception $e) { $conn->rollback(); echo json_encode(["status" => "error", "message" => "Failed to reserve book."]); }
@@ -132,6 +141,14 @@ switch ($action) {
             $stmt4 = $conn->prepare("DELETE FROM reservations WHERE id=?");
             $stmt4->bind_param("i", $resId); $stmt4->execute();
             $conn->commit();
+            // Notify admins/staff and optionally student that reservation approved (admin bell)
+            $conn->query("CREATE TABLE IF NOT EXISTS notifications (id INT AUTO_INCREMENT PRIMARY KEY, type VARCHAR(50) DEFAULT NULL, reference_id VARCHAR(100) DEFAULT NULL, message TEXT DEFAULT NULL, is_read TINYINT(1) DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+            $notifStmt = $conn->prepare("INSERT INTO notifications (type, reference_id, message, is_read) VALUES (?, ?, ?, 0)");
+            $msg = "Reservation {$resId} approved and book {$bookId} issued to {$studentId}";
+            $t = 'reservation_approved';
+            $notifStmt->bind_param("sss", $t, $resId, $msg);
+            $notifStmt->execute();
+            $notifStmt->close();
             echo json_encode(["status" => "success", "message" => "Request Approved! Book issued for 14 days."]);
         } catch (Exception $e) { $conn->rollback(); echo json_encode(["status" => "error", "message" => "Failed: " . $e->getMessage()]); }
         break;

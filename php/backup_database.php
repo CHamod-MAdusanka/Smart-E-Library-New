@@ -3,6 +3,25 @@ session_start();
 if (!isset($_SESSION['admin_id'])) { die("Unauthorized access"); }
 require 'db_connect.php';
 
+$adminId = $_SESSION['admin_id'];
+$adminCheck = $conn->prepare("SELECT role FROM admins WHERE work_id = ?");
+$adminCheck->bind_param("s", $adminId);
+$adminCheck->execute();
+$adminCheck->store_result();
+
+if ($adminCheck->num_rows === 0 || $adminCheck->num_rows !== 1) {
+    $adminCheck->close();
+    die("Unauthorized: Only Head Admin can download database backups.");
+}
+
+$adminCheck->bind_result($adminRole);
+$adminCheck->fetch();
+$adminCheck->close();
+
+if ($adminRole !== 'Head Admin') {
+    die("Unauthorized: Only Head Admin can download database backups.");
+}
+
 $tables = array();
 $result = $conn->query("SHOW TABLES");
 while($row = $result->fetch_row()) { $tables[] = $row[0]; }

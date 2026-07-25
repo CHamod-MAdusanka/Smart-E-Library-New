@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (!isset($_SESSION['student_id'])) {
+    header('Location: student-login.html');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,7 +42,7 @@
                 </button>               
                 <div id="profile-dropdown" class="dropdown-content">
                     <a href="#" onclick="showSection('settings'); toggleDropdown('profile-dropdown'); return false;">My Profile</a>
-                    <a href="index.html">Logout</a>
+                    <a href="logout.php">Logout</a>
                 </div>
             </div>
         </div>

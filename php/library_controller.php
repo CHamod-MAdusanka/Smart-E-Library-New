@@ -3,18 +3,15 @@ session_start();
 header('Content-Type: application/json');
 require 'db_connect.php';
 
-// Auto-cancel expired reservations (older than 24 hours)
-$conn->query("UPDATE books SET status='Available' WHERE book_id IN (SELECT book_id FROM reservations WHERE TIMESTAMPDIFF(HOUR, request_date, NOW()) >= 24)");
-$conn->query("DELETE FROM reservations WHERE TIMESTAMPDIFF(HOUR, request_date, NOW()) >= 24");
-
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 $data = json_decode(file_get_contents('php://input'), true);
 if (empty($action) && isset($data['action'])) { $action = $data['action']; }
 
 switch ($action) {
     case 'add_book':
-        $bookId = $data['book_id']; $title = $data['title']; $author = $data['author'];
-        $category = $data['category']; $coverData = $data['cover_img']; 
+        if (!isset($_SESSION)) { session_start(); }
+        $bookId = getJsonValue($data, 'book_id', ''); $title = getJsonValue($data, 'title', ''); $author = getJsonValue($data, 'author', '');
+        $category = getJsonValue($data, 'category', ''); $coverData = getJsonValue($data, 'cover_img', null);
         $status = "Available"; $dateAdded = date("Y-m-d"); $coverPath = "static/covers/default.png"; 
         if ($coverData != null && strpos($coverData, 'data:image') === 0) {
             $image_parts = explode(";base64,", $coverData);
@@ -33,6 +30,7 @@ switch ($action) {
         break;
 
     case 'remove_book':
+        if (!isset($_SESSION)) { session_start(); }
         $bookId = $data['book_id'];
         $stmt = $conn->prepare("DELETE FROM books WHERE book_id = ?");
         $stmt->bind_param("s", $bookId);
@@ -44,6 +42,7 @@ switch ($action) {
         break;
 
     case 'get_active_borrowings':
+        if (!isset($_SESSION)) { session_start(); }
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         // Fetching email instead of phone now
         $sql = "SELECT b.title, bw.book_id, s.full_name as student_name, s.email, bw.due_date, DATEDIFF(bw.due_date, CURDATE()) as days_left 
@@ -62,6 +61,7 @@ switch ($action) {
         break;
 
     case 'get_student_borrowings':
+        if (!isset($_SESSION)) { session_start(); }
         if (!isset($_SESSION['student_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $studentId = $_SESSION['student_id'];
         $sql = "SELECT b.title, bw.book_id, bw.issue_date, bw.due_date, DATEDIFF(bw.due_date, CURDATE()) as days_left 
@@ -84,8 +84,9 @@ switch ($action) {
         break;
 
     case 'reserve_book':
+        if (!isset($_SESSION)) { session_start(); }
         if (!isset($_SESSION['student_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
-        $studentId = $_SESSION['student_id']; $bookId = $data['book_id'];
+        $studentId = $_SESSION['student_id']; $bookId = getJsonValue($data, 'book_id', '');
         
         // Check Limit (Max 2 Reservations)
         $stmtLimit = $conn->prepare("SELECT COUNT(*) as count FROM reservations WHERE student_id = ?");
@@ -123,6 +124,7 @@ switch ($action) {
         break;
 
     case 'approve_reservation':
+        if (!isset($_SESSION)) { session_start(); }
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $resId = $data['reservation_id'];
         $conn->begin_transaction();
@@ -154,11 +156,18 @@ switch ($action) {
         break;
 
     case 'cancel_reservation':
+        if (!isset($_SESSION['student_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
+        $studentId = $_SESSION['student_id'];
         $resId = $data['reservation_id'];
-        $stmt = $conn->prepare("SELECT book_id FROM reservations WHERE id = ?");
+        $stmt = $conn->prepare("SELECT student_id, book_id FROM reservations WHERE id = ?");
         $stmt->bind_param("i", $resId); $stmt->execute(); $result = $stmt->get_result();
         if($result->num_rows === 0) { echo json_encode(["status" => "error", "message" => "Reservation not found."]); exit(); }
-        $bookId = $result->fetch_assoc()['book_id'];
+        $reservation = $result->fetch_assoc();
+        if (($reservation['student_id'] ?? '') !== $studentId) {
+            echo json_encode(["status" => "error", "message" => "Unauthorized"]);
+            exit();
+        }
+        $bookId = $reservation['book_id'];
         $conn->begin_transaction();
         try {
             $stmt = $conn->prepare("UPDATE books SET status='Available' WHERE book_id=?");
@@ -171,9 +180,10 @@ switch ($action) {
         break;
 
     case 'submit_scan_request':
+        if (!isset($_SESSION)) { session_start(); }
         if (!isset($_SESSION['student_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $studentId = $_SESSION['student_id']; 
-        $bookId = $data['book_id'];
+        $bookId = getJsonValue($data, 'book_id', '');
         
         $conn->begin_transaction();
         try {
@@ -208,27 +218,51 @@ switch ($action) {
         break;
 
     case 'get_books':
+        if (!isset($_SESSION)) { session_start(); }
         $result = $conn->query("SELECT * FROM books");
         $books = [];
-        if ($result && $result->num_rows > 0) { while($row = $result->fetch_assoc()) { $books[] = $row; } }
+        if ($result && $result->num_rows > 0) { while($row = $result->fetch_assoc()) { $books[] = [
+            'book_id' => escapeOutput($row['book_id']),
+            'title' => escapeOutput($row['title']),
+            'author' => escapeOutput($row['author']),
+            'category' => escapeOutput($row['category']),
+            'status' => escapeOutput($row['status']),
+            'cover_img' => escapeOutput($row['cover_img']),
+            'date_added' => escapeOutput($row['date_added'])
+        ]; } }
         echo json_encode(["status" => "success", "data" => $books]);
         break;
 
     case 'get_admin_reservations':
+        if (!isset($_SESSION)) { session_start(); }
         $sql = "SELECT r.id, s.full_name, s.student_id, b.title, r.request_date, r.status FROM reservations r JOIN books b ON r.book_id = b.book_id JOIN students s ON r.student_id = s.student_id";
+        if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $result = $conn->query($sql);
         $reservations = [];
-        if ($result && $result->num_rows > 0) { while($row = $result->fetch_assoc()) { $reservations[] = $row; } }
+        if ($result && $result->num_rows > 0) { while($row = $result->fetch_assoc()) { $reservations[] = [
+            'id' => (int)$row['id'],
+            'full_name' => escapeOutput($row['full_name']),
+            'student_id' => escapeOutput($row['student_id']),
+            'title' => escapeOutput($row['title']),
+            'request_date' => escapeOutput($row['request_date']),
+            'status' => escapeOutput($row['status'])
+        ]; } }
         echo json_encode(["status" => "success", "data" => $reservations]);
         break;
 
     case 'get_student_reservations':
+        if (!isset($_SESSION)) { session_start(); }
         $studentId = $_SESSION['student_id'];
         $sql = "SELECT r.id, b.title, r.request_date, r.status FROM reservations r JOIN books b ON r.book_id = b.book_id WHERE r.student_id = ?";
         $stmt = $conn->prepare($sql); $stmt->bind_param("s", $studentId); $stmt->execute();
         $result = $stmt->get_result();
         $reservations = [];
-        if ($result->num_rows > 0) { while($row = $result->fetch_assoc()) { $reservations[] = $row; } }
+        if ($result->num_rows > 0) { while($row = $result->fetch_assoc()) { $reservations[] = [
+            'id' => (int)$row['id'],
+            'title' => escapeOutput($row['title']),
+            'request_date' => escapeOutput($row['request_date']),
+            'status' => escapeOutput($row['status'])
+        ]; } }
         echo json_encode(["status" => "success", "data" => $reservations]);
         $stmt->close();
         break;
@@ -237,6 +271,7 @@ switch ($action) {
     // === QR SCANNER: GET RETURN DETAILS ===
     // ==========================================
     case 'get_return_details':
+        if (!isset($_SESSION)) { session_start(); }
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $bookId = $data['book_id'];
         
@@ -269,6 +304,7 @@ switch ($action) {
     // === QR SCANNER: PROCESS RETURN ===
     // ==========================================
     case 'process_return':
+        if (!isset($_SESSION)) { session_start(); }
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $borrowingId = $data['borrowing_id'];
         $bookId = $data['book_id'];

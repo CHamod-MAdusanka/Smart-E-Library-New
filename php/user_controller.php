@@ -3,6 +3,28 @@ session_start();
 header('Content-Type: application/json');
 require 'db_connect.php';
 
+function hasValidUpload(array $file, array $allowedMimeTypes, array $allowedExtensions): bool {
+    if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) {
+        return false;
+    }
+
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $detectedMime = mime_content_type($file['tmp_name']);
+    if ($detectedMime === false) {
+        $detectedMime = $file['type'] ?? '';
+    }
+
+    return in_array($detectedMime, $allowedMimeTypes, true) && in_array($extension, $allowedExtensions, true);
+}
+
+function escapeOutput($value): string {
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+function getJsonValue(array $data, string $key, $default = '') {
+    return isset($data[$key]) ? $data[$key] : $default;
+}
+
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 $data = json_decode(file_get_contents('php://input'), true);
 if (empty($action) && isset($data['action'])) { $action = $data['action']; }
@@ -14,25 +36,39 @@ switch ($action) {
     case 'update_student_profile':
         if (!isset($_SESSION['student_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $studentId = $_SESSION['student_id'];
-        $password = $_POST['password'] ?? '';
-        $name = $_POST['name'] ?? '';
-        $email = $_POST['email'] ?? '';
-        $phone = $_POST['phone'] ?? '';
-        $dob = $_POST['dob'] ?? '';
+        $password = isset($_POST['password']) ? (string)$_POST['password'] : '';
+        $name = isset($_POST['name']) ? (string)$_POST['name'] : '';
+        $email = isset($_POST['email']) ? (string)$_POST['email'] : '';
+        $phone = isset($_POST['phone']) ? (string)$_POST['phone'] : '';
+        $dob = isset($_POST['dob']) ? (string)$_POST['dob'] : '';
 
         $stmt = $conn->prepare("SELECT password FROM students WHERE student_id = ?");
         $stmt->bind_param("s", $studentId); $stmt->execute();
         $user = $stmt->get_result()->fetch_assoc();
 
-        if ($user['password'] !== $password) { echo json_encode(["status" => "error", "message" => "Incorrect current password!"]); exit(); }
+        if (($user['password'] ?? '') !== $password) { echo json_encode(["status" => "error", "message" => "Incorrect current password!"]); exit(); }
 
         $picPath = null;
         if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === 0) {
+            $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            if (!hasValidUpload($_FILES['profile_pic'], $allowedMimeTypes, $allowedExtensions)) {
+                echo json_encode(["status" => "error", "message" => "Only JPG, PNG, GIF, or WEBP profile pictures are allowed."]);
+                exit();
+            }
+
             $targetDir = "../uploads/profiles/";
             if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
             $fileName = time() . "_" . basename($_FILES["profile_pic"]["name"]);
             $targetFilePath = $targetDir . $fileName;
             if (move_uploaded_file($_FILES["profile_pic"]["tmp_name"], $targetFilePath)) {
+                $existingPic = $user['profile_pic'] ?? '';
+                if (!empty($existingPic) && $existingPic !== 'static/admin.png' && $existingPic !== 'static/chamod.png') {
+                    $oldFile = '../' . ltrim($existingPic, '/');
+                    if (file_exists($oldFile)) {
+                        @unlink($oldFile);
+                    }
+                }
                 $picPath = "uploads/profiles/" . $fileName; 
             }
         }
@@ -56,16 +92,16 @@ switch ($action) {
     case 'update_admin_profile':
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $adminId = $_SESSION['admin_id'];
-        $pass = $data['password'];
-        $fullName = $data['full_name'];
-        $email = $data['email'];
-        $pic = $data['profile_pic'];
+        $pass = getJsonValue($data, 'password', '');
+        $fullName = getJsonValue($data, 'full_name', '');
+        $email = getJsonValue($data, 'email', '');
+        $pic = getJsonValue($data, 'profile_pic', '');
 
         $stmt = $conn->prepare("SELECT password FROM admins WHERE work_id = ?");
         $stmt->bind_param("s", $adminId); $stmt->execute();
         $user = $stmt->get_result()->fetch_assoc();
 
-        if($user['password'] !== $pass) { echo json_encode(["status" => "error", "message" => "Incorrect current password!"]); exit(); }
+        if (($user['password'] ?? '') !== $pass) { echo json_encode(["status" => "error", "message" => "Incorrect current password!"]); exit(); }
 
         $nameParts = explode(" ", $fullName, 2);
         $fName = $nameParts[0]; $lName = isset($nameParts[1]) ? $nameParts[1] : '';
@@ -83,8 +119,8 @@ switch ($action) {
     // ==========================================
     case 'add_officer':
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized access!"]); exit(); }
-        $workId = $data['work_id']; $firstName = $data['first_name']; $lastName = $data['last_name'];
-        $email = $data['email']; $password = $data['password']; $role = "Officer"; $profilePic = "static/admin.png";
+        $workId = getJsonValue($data, 'work_id', ''); $firstName = getJsonValue($data, 'first_name', ''); $lastName = getJsonValue($data, 'last_name', '');
+        $email = getJsonValue($data, 'email', ''); $password = getJsonValue($data, 'password', ''); $role = "Officer"; $profilePic = "static/admin.png";
 
         $checkStmt = $conn->prepare("SELECT work_id FROM admins WHERE work_id = ?");
         $checkStmt->bind_param("s", $workId); $checkStmt->execute();
@@ -170,8 +206,13 @@ switch ($action) {
     // ==========================================
     case 'get_officers':
         $result = $conn->query("SELECT work_id, CONCAT(first_name, ' ', last_name) AS full_name, email FROM admins WHERE role != 'Head Admin'");
+        if (!isset($_SESSION['admin_id'])) { echo json_encode(['status' => 'error', 'message' => 'Unauthorized']); exit(); }
         $officers = [];
-        if ($result && $result->num_rows > 0) { while($row = $result->fetch_assoc()) { $officers[] = $row; } }
+        if ($result && $result->num_rows > 0) { while($row = $result->fetch_assoc()) { $officers[] = [
+            'work_id' => escapeOutput($row['work_id']),
+            'full_name' => escapeOutput($row['full_name']),
+            'email' => escapeOutput($row['email'])
+        ]; } }
         echo json_encode(['status' => 'success', 'data' => $officers]);
         break;
 
@@ -187,8 +228,8 @@ switch ($action) {
         if ($result->num_rows === 1) {
             $user = $result->fetch_assoc();
             echo json_encode(["status" => "success", "data" => [
-                "id" => $user['student_id'], "name" => $user['full_name'], "email" => $user['email'],
-                "phone" => $user['phone'], "dob" => $user['dob'], "avatar" => $user['profile_pic'] ? $user['profile_pic'] : 'static/chamod.png' 
+                "id" => escapeOutput($user['student_id']), "name" => escapeOutput($user['full_name']), "email" => escapeOutput($user['email']),
+                "phone" => escapeOutput($user['phone']), "dob" => escapeOutput($user['dob']), "avatar" => escapeOutput($user['profile_pic'] ? $user['profile_pic'] : 'static/chamod.png')
             ]]);
         } else { echo json_encode(["status" => "error", "message" => "Student not found"]); }
         $stmt->close();
@@ -206,8 +247,8 @@ switch ($action) {
         if ($result->num_rows === 1) {
             $user = $result->fetch_assoc();
             echo json_encode(["status" => "success", "data" => [
-                "id" => $user['work_id'], "name" => $user['first_name'] . " " . $user['last_name'],
-                "email" => $user['email'], "role" => $user['role'], "avatar" => $user['profile_pic']
+                "id" => escapeOutput($user['work_id']), "name" => escapeOutput($user['first_name'] . " " . $user['last_name']),
+                "email" => escapeOutput($user['email']), "role" => escapeOutput($user['role']), "avatar" => escapeOutput($user['profile_pic'])
             ]]);
         } else { echo json_encode(["status" => "error", "message" => "User not found"]); }
         $stmt->close();

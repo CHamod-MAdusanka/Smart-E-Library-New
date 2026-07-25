@@ -3,18 +3,13 @@ session_start();
 header('Content-Type: application/json');
 require 'db_connect.php';
 
-// ==========================================
-// === Notifications Table Init ===
-// ==========================================
-// Connected to admin notification endpoints in this file (get_notifications, mark_notifications_read)
-$conn->query("CREATE TABLE IF NOT EXISTS notifications (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    type VARCHAR(50) DEFAULT NULL,
-    reference_id VARCHAR(100) DEFAULT NULL,
-    message TEXT DEFAULT NULL,
-    is_read TINYINT(1) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)");
+function escapeOutput($value): string {
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+function getJsonValue(array $data, string $key, $default = '') {
+    return isset($data[$key]) ? $data[$key] : $default;
+}
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 $data = json_decode(file_get_contents('php://input'), true);
@@ -26,9 +21,23 @@ switch ($action) {
     // ==========================================
     case 'update_preferences':
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
+        $adminId = $_SESSION['admin_id'];
+        $roleStmt = $conn->prepare("SELECT role FROM admins WHERE work_id = ?");
+        $roleStmt->bind_param("s", $adminId);
+        $roleStmt->execute();
+        $roleResult = $roleStmt->get_result();
+        $isHeadAdmin = false;
+        if ($roleResult && $roleResult->num_rows === 1) {
+            $roleRow = $roleResult->fetch_assoc();
+            $isHeadAdmin = ($roleRow['role'] ?? '') === 'Head Admin';
+        }
+        $roleStmt->close();
+        if (!$isHeadAdmin) {
+            echo json_encode(["status" => "error", "message" => "Unauthorized: Only Head Admin can update system preferences."]); exit();
+        }
         if(isset($data['borrow_days']) && isset($data['fine_amount'])) {
-            $days = (int)$data['borrow_days'];
-            $fine = (float)$data['fine_amount'];
+            $days = (int)getJsonValue($data, 'borrow_days', 0);
+            $fine = (float)getJsonValue($data, 'fine_amount', 0);
             $stmt = $conn->prepare("UPDATE system_settings SET borrowing_period=?, late_fine=? WHERE id=1");
             $stmt->bind_param("id", $days, $fine);
             if($stmt->execute()) echo json_encode(["status" => "success", "message" => "Library preferences updated successfully!"]);
@@ -91,7 +100,14 @@ switch ($action) {
         $notifs = [];
         $res = $conn->query("SELECT id, type, reference_id, message, is_read, created_at FROM notifications ORDER BY created_at DESC LIMIT 50");
         if ($res && $res->num_rows > 0) {
-            while($row = $res->fetch_assoc()) { $notifs[] = $row; }
+            while($row = $res->fetch_assoc()) { $notifs[] = [
+                'id' => (int)$row['id'],
+                'type' => escapeOutput($row['type']),
+                'reference_id' => escapeOutput($row['reference_id']),
+                'message' => escapeOutput($row['message']),
+                'is_read' => (int)$row['is_read'],
+                'created_at' => escapeOutput($row['created_at'])
+            ]; }
         }
         $res2 = $conn->query("SELECT count(*) as count FROM notifications WHERE is_read = 0");
         $unread = ($res2) ? (int)$res2->fetch_assoc()['count'] : 0;
@@ -114,7 +130,7 @@ switch ($action) {
     // Connected to `js/app.js` when a section is viewed to clear that section's notifications
     case 'mark_notifications_read_by_type':
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
-        $type = $data['type'] ?? '';
+        $type = getJsonValue($data, 'type', '');
         if ($type !== '') {
             $stmt = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE is_read = 0 AND type = ?");
             $stmt->bind_param("s", $type);
@@ -128,7 +144,7 @@ switch ($action) {
 
     case 'mark_sidebar_seen':
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
-        $section = $data['section'] ?? '';
+        $section = getJsonValue($data, 'section', '');
         $type = '';
         switch ($section) {
             case 'pending_registrations': $type = 'registration'; break;

@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: admin-login.html');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,7 +46,7 @@
                 </button>               
                 <div id="profile-dropdown" class="dropdown-content">
                     <a href="#" onclick="showSection('settings'); toggleDropdown('profile-dropdown'); return false;">Profile</a>
-                    <a href="index.html">Logout</a>
+                    <a href="logout.php">Logout</a>
                 </div>
             </div>
         </div>

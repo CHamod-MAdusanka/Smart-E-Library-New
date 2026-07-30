@@ -18,7 +18,7 @@ body {
 }
 
 /* ========================================= */
-/* === Landing Page Hero === */
+/* === Landing Page Hero & Navigation === */
 /* ========================================= */
 .top-bar { 
     background-color: var(--bg-slate); 
@@ -45,15 +45,26 @@ body {
     transition: 0.3s;
 }
 
-.top-bar a:hover { color: var(--accent-teal); }
-.divider { color: #64748B; margin: 0 10px; font-size: 18px; }
+.top-bar a:hover { 
+    color: var(--accent-teal); 
+}
+
+.divider { 
+    color: #64748B; 
+    margin: 0 10px; 
+    font-size: 18px; 
+}
 
 .btn {
     padding: 8px 16px;
     border-radius: 4px;
     background: rgba(255,255,255,0.1);
 }
-.btn:hover { background: var(--accent-teal); color: white !important; }
+
+.btn:hover { 
+    background: var(--accent-teal); 
+    color: white !important; 
+}
 
 /* === Hero Background === */
 .hero { 
@@ -76,6 +87,7 @@ body {
     letter-spacing: 2px; 
     line-height: 1.2; 
 }
+
 .welcome-text { 
     font-family: 'Dancing Script', cursive; 
     font-size: 80px; 
@@ -84,14 +96,13 @@ body {
 }
 
 /* ========================================= */
-/* === Authentication Pages === */
+/* === Authentication Pages (Login) === */
 /* ========================================= */
 .login-wrapper { 
     min-height: 100vh; 
     display: flex; 
     justify-content: center; 
     align-items: center; 
-    /* === Login Background === */
     background-image: linear-gradient(rgba(244, 246, 248, 0.85), rgba(244, 246, 248, 0.95)), url('../static/student3.jpg');
     background-size: cover;
     background-position: center;
@@ -108,7 +119,11 @@ body {
     border-top: 5px solid var(--accent-teal);
 }
 
-.login-box h2 { color: var(--bg-slate); margin-bottom: 25px; font-size: 24px;}
+.login-box h2 { 
+    color: var(--bg-slate); 
+    margin-bottom: 25px; 
+    font-size: 24px;
+}
 
 .login-box input { 
     width: 100%; 
@@ -121,7 +136,12 @@ body {
     box-sizing: border-box; 
     transition: 0.3s;
 }
-.login-box input:focus { outline: none; border-color: var(--accent-teal); background: #fff;}
+
+.login-box input:focus { 
+    outline: none; 
+    border-color: var(--accent-teal); 
+    background: #fff;
+}
 
 .login-btn { 
     width: 100%; 
@@ -135,12 +155,179 @@ body {
     cursor: pointer; 
     transition: 0.3s;
 }
-.login-btn:hover { background-color: #3ba391; box-shadow: 0 4px 10px rgba(76, 181, 165, 0.3);}
 
-.forgot-password { text-align: right; margin-bottom: 20px; margin-top: -10px;}
-.forgot-password a { color: var(--accent-teal); font-size: 13px; text-decoration: none; font-weight: bold;}
-.forgot-password a:hover { text-decoration: underline; }
+.login-btn:hover { 
+    background-color: #3ba391; 
+    box-shadow: 0 4px 10px rgba(76, 181, 165, 0.3);
+}
 
-.register-link { margin-top: 25px; font-size: 14px; color: #64748B;}
-.register-link a { color: var(--bg-slate); font-weight: bold; text-decoration: none;}
-.register-link a:hover { color: var(--accent-teal); }
+.forgot-password { 
+    text-align: right; 
+    margin-bottom: 20px; 
+    margin-top: -10px;
+}
+
+.forgot-password a { 
+    color: var(--accent-teal); 
+    font-size: 13px; 
+    text-decoration: none; 
+    font-weight: bold;
+}
+
+.forgot-password a:hover { 
+    text-decoration: underline; 
+}
+
+.register-link { 
+    margin-top: 25px; 
+    font-size: 14px; 
+    color: #64748B;
+}
+
+.register-link a { 
+    color: var(--bg-slate); 
+    font-weight: bold; 
+    text-decoration: none;
+}
+
+.register-link a:hover { 
+    color: var(--accent-teal); 
+}
+
+/* --- Admin Login Specific Styles --- */
+.anti-autofill-hidden {
+    position: absolute;
+    left: -9999px;
+}
+
+.hidden-step {
+    display: none;
+}
+
+.display-user-id {
+    font-weight: bold;
+    color: #003366;
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+/* ========================================= */
+/* === Student Registration Specific Styles === */
+/* ========================================= */
+.home-btn {
+    color: white; 
+    text-decoration: none; 
+    margin-right: 15px;
+}
+
+.register-box {
+    width: 450px; 
+    margin-top: 60px; 
+    margin-bottom: 40px;
+}
+
+.register-box h2 {
+    color: var(--bg-slate, #1E293B); 
+    margin-bottom: 5px;
+}
+
+.register-box .subtitle {
+    color: #64748B; 
+    font-size: 14px; 
+    margin-bottom: 25px;
+}
+
+.form-group {
+    text-align: left;
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    font-size: 13px; 
+    font-weight: bold; 
+    color: var(--bg-slate, #1E293B); 
+    display: block; 
+    margin-bottom: 5px;
+}
+
+/* Select Input Styling */
+.login-box select { 
+    width: 100%; 
+    padding: 14px; 
+    border: 1px solid #E2E8F0; 
+    background: #F8FAFC;
+    border-radius: 6px; 
+    font-size: 15px; 
+    box-sizing: border-box; 
+    transition: 0.3s;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    cursor: pointer;
+}
+
+.login-box select:focus { 
+    outline: none; 
+    border-color: var(--accent-teal, #0D9488); 
+    background: #fff;
+}
+
+.password-hint {
+    font-size: 11px;
+    color: #64748B;
+    display: block;
+    margin-top: 4px;
+}
+
+/* --- Modern File Upload Styling --- */
+.custom-file-upload {
+    position: relative;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.custom-file-upload input[type="file"] {
+    width: 100%;
+    padding: 12px;
+    background: #F8FAFC;
+    border: 1px dashed var(--accent-teal, #0D9488);
+    border-radius: 6px;
+    cursor: pointer;
+    box-sizing: border-box;
+    font-size: 14px;
+    color: #333;
+    transition: background 0.3s;
+}
+
+.custom-file-upload input[type="file"]:hover {
+    background: #E2E8F0;
+}
+
+/* Change border color when file is selected */
+.custom-file-upload input[type="file"]:valid {
+    border-color: #10B981; 
+    background: #ECFDF5;
+}
+
+/* --- Password Visibility Toggle Styles --- */
+.password-wrapper {
+    position: relative;
+    display: block;
+    margin-bottom: 20px;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding-right: 40px; 
+    margin-bottom: 0;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #64748B;
+    font-size: 18px;
+    user-select: none;
+}

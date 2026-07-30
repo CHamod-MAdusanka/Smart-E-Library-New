@@ -1,7 +1,15 @@
 <?php
+// Initialize session and verify admin authentication
 session_start();
+
+// Prevent browser caching to fix back-button navigation issues
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
+
 if (!isset($_SESSION['admin_id'])) {
-    header('Location: admin-login.html');
+    header('Location: admin-login.php');
     exit;
 }
 ?>
@@ -12,10 +20,12 @@ if (!isset($_SESSION['admin_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Smart E-Library</title>
     
+    <!-- External Stylesheets and Fonts -->
     <link rel="stylesheet" href="css/admin-style.css">
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Roboto+Slab:wght@900&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Top Navigation Header -->
     <div class="dashboard-header">
         <div class="header-left">
             <button id="menu-btn" class="menu-toggle-btn">☰</button>
@@ -24,39 +34,44 @@ if (!isset($_SESSION['admin_id'])) {
         
         <div class="header-center">
             <div class="search-box">
-                <input id="global-search" type="text" placeholder="Search..." readonly onfocus="this.removeAttribute('readonly');">
+                <input id="global-search" type="text" placeholder="Search..." readonly>
                 <span class="search-icon">🔍</span>
             </div>
         </div> 
         
         <div class="header-right">
-                <div class="dropdown">
-                <button class="icon-btn" id="bell-btn" onclick="onBellClick(event)">
-                    🔔<span class="badge" id="notif-badge" style="display:none;">0</span>
+            <!-- Notifications Dropdown -->
+            <div class="dropdown">
+                <button class="icon-btn" id="bell-btn">
+                    🔔<span class="badge" id="notif-badge" class="hidden-element">0</span>
                 </button>
                 <div id="notification-dropdown" class="dropdown-content notif-dropdown">
+                    <!-- Notifications loaded via JS -->
                 </div>
             </div>
             <div id="notification-toast-container" class="toast-container"></div>
             
+            <!-- Profile Dropdown -->
             <div class="dropdown">
-                <button class="profile-btn" onclick="toggleDropdown('profile-dropdown')"> 
+                <button class="profile-btn" id="profile-dropdown-btn"> 
                     <img id="header-profile-img" src="static/admin.png" alt="Profile" class="profile-img">
                     <span id="header-profile-name">Officer</span>
                 </button>               
                 <div id="profile-dropdown" class="dropdown-content">
-                    <a href="#" onclick="showSection('settings'); toggleDropdown('profile-dropdown'); return false;">Profile</a>
+                    <a href="#" id="link-profile-settings">Profile</a>
                     <a href="logout.php">Logout</a>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Main Dashboard Container -->
     <div class="dashboard-container">        
+        <!-- Sidebar Navigation -->
         <div id="sidebar" class="sidebar">
             <h2>Admin Panel</h2>
             <ul class="sidebar-menu">
-                <li class="menu-item home-item" onclick="showSection('home')">
+                <li class="menu-item home-item nav-trigger" data-section="home">
                     <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 10.5L12 4l9 6.5"></path>
                         <path d="M9 21.5V12h6v9.5"></path>
@@ -65,33 +80,33 @@ if (!isset($_SESSION['admin_id'])) {
                     Home
                 </li>
 
-                <li class="menu-item">Manage Students ▾ <span id="badge-manage-students" class="sidebar-badge" style="display:none;">0</span>
+                <li class="menu-item menu-parent">Manage Students ▾ <span id="badge-manage-students" class="sidebar-badge hidden-element">0</span>
                     <ul class="submenu">
-                        <li onclick="showSection('view-members')"> View All Students</li>
-                        <li onclick="showSection('approve-registrations')"> Approve New Registrations <span id="badge-approvals" class="sidebar-badge" style="display:none;">0</span></li>
-                        <li onclick="showSection('remove-member')"> Remove Student </li>
+                        <li class="nav-trigger" data-section="view-members"> View All Students</li>
+                        <li class="nav-trigger" data-section="approve-registrations"> Approve New Registrations <span id="badge-approvals" class="sidebar-badge hidden-element">0</span></li>
+                        <li class="nav-trigger" data-section="remove-member"> Remove Student </li>
                     </ul>
                 </li>
 
-                <li class="menu-item">Manage Books ▾
+                <li class="menu-item menu-parent">Manage Books ▾
                     <ul class="submenu">
-                        <li onclick="showSection('add-book')"> Add New Book</li>
-                        <li onclick="showSection('remove-book')"> Remove Book</li>
+                        <li class="nav-trigger" data-section="add-book"> Add New Book</li>
+                        <li class="nav-trigger" data-section="remove-book"> Remove Book</li>
                     </ul>
                 </li>
 
-                <li class="menu-item" onclick="showSection('book-reservations')">Book Reservations <span id="badge-reservations" class="sidebar-badge" style="display:none;">0</span></li>
-                
-                <li class="menu-item" onclick="showSection('active-books')">Active Borrowed Books <span id="badge-active" class="sidebar-badge" style="display:none;">0</span></li>
-                
-                <li class="menu-item" onclick="showSection('return-books')">Returns Books</li>
-                <li class="menu-item settings-item" onclick="showSection('settings')">⚙️ Settings</li>
+                <li class="menu-item nav-trigger" data-section="book-reservations">Book Reservations <span id="badge-reservations" class="sidebar-badge hidden-element">0</span></li>
+                <li class="menu-item nav-trigger" data-section="active-books">Active Borrowed Books <span id="badge-active" class="sidebar-badge hidden-element">0</span></li>
+                <li class="menu-item nav-trigger" data-section="return-books">Returns Books</li>
+                <li class="menu-item settings-item nav-trigger" data-section="settings">⚙️ Settings</li>
             </ul>
         </div>
         
+        <!-- Dynamic Content Display Area -->
         <div class="main-content" id="main-display-area">            
             
-            <div id="home" class="dynamic-section" style="display: block;">
+            <!-- Home Section -->
+            <div id="home" class="dynamic-section default-visible-section">
                 <div class="dashboard-cards">
                     <div class="card" id="stat-total-members">Total Members: -</div>
                     <div class="card" id="stat-pending-approvals">Pending Approvals: -</div>
@@ -105,11 +120,12 @@ if (!isset($_SESSION['admin_id'])) {
                         <p>All library services and IoT modules are currently running smoothly.</p>
                     </div>
                     <div class="pro-banner-graphic">
-                        <div style="font-size: 60px; opacity: 0.9;">📈</div>
+                        <div class="banner-icon-large">📈</div>
                     </div>
                 </div>
             </div>
 
+            <!-- Active Borrowed Books Section -->
             <div id="active-books" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div>
@@ -137,6 +153,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- View Members Section -->
             <div id="view-members" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">View All Students</h2></div>
@@ -161,6 +178,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Approve Registrations Section -->
             <div id="approve-registrations" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Approve New Registrations</h2></div>
@@ -185,6 +203,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Remove Member Section -->
             <div id="remove-member" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Remove Student</h2></div>
@@ -209,6 +228,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Add Book Section -->
             <div id="add-book" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Add New Book</h2></div>
@@ -240,7 +260,7 @@ if (!isset($_SESSION['admin_id'])) {
                             </div>
                             <div class="field-item">
                                 <label>Book Cover Image</label>
-                                <input id="book-cover" type="file" accept="image/*">
+                                <input id="book-cover" type="file" accept="image/png, image/jpeg">
                             </div>
                             <div class="field-item field-full">
                                 <label>Book ID</label>
@@ -253,6 +273,7 @@ if (!isset($_SESSION['admin_id'])) {
                     </div>
                 </div>
 
+                <!-- Book Inventory Directory -->
                 <div class="directory-panel">
                     <div class="section-header">
                         <div><h3>Book Inventory</h3></div>
@@ -276,6 +297,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Remove Book Section -->
             <div id="remove-book" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Remove Book</h2></div>
@@ -308,6 +330,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Book Reservations Section -->
             <div id="book-reservations" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Online Book Reservations</h2></div>
@@ -333,6 +356,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Return Books (QR Scanner) Section -->
             <div id="return-books" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div>
@@ -340,161 +364,166 @@ if (!isset($_SESSION['admin_id'])) {
                         <p>Scan a book's QR code to process its return and calculate fines instantly.</p>
                     </div>
                 </div>
-                <div class="settings-grid" style="display: flex; justify-content: center; margin-top: 20px;">
-                    <div class="settings-card" style="width: 100%; max-width: 500px; text-align: center;">
-                        <div id="admin-qr-reader" style="width: 100%; margin: 0 auto 20px auto; display: none; border: 3px solid #3b82f6; border-radius: 8px;"></div>
+                <div class="settings-grid scanner-layout-center">
+                    <div class="settings-card scanner-card">
                         
-                        <button class="btn-approve" style="padding: 15px; font-size: 16px; width: 100%; margin-bottom: 10px;" onclick="startAdminScanner()">📷 Start Camera Scanner</button>
+                        <!-- Scanner Render Area -->
+                        <div id="admin-qr-reader" class="qr-reader-box hidden-element"></div>
                         
-                        <div style="margin: 15px 0; border-bottom: 1px solid #e2e8f0; position: relative;">
-                            <span style="background: white; padding: 0 10px; position: relative; top: 10px; color: #64748b; font-weight: bold;">OR</span>
+                        <button id="btn-start-scanner" class="btn-approve full-width-btn mb-10">📷 Start Camera Scanner</button>
+                        
+                        <div class="scanner-divider">
+                            <span class="scanner-divider-text">OR</span>
                         </div>
                         
-                        <input type="file" id="qr-upload-file" accept="image/*" style="display: none;" onchange="handleAdminQrFileUpload(event)">
-                        <button class="btn-secondary" style="padding: 15px; font-size: 16px; width: 100%; margin-top: 10px; background: #334155; color: white; border: none; border-radius: 8px; cursor: pointer;" onclick="document.getElementById('qr-upload-file').click()">📂 Upload QR Image</button>
+                        <!-- Manual QR Upload Area -->
+                        <input type="file" id="qr-upload-file" accept="image/*" class="hidden-element">
+                        <button id="btn-upload-qr" class="btn-secondary full-width-btn mt-10 dark-btn">📂 Upload QR Image</button>
                         
                     </div>
                 </div>
             </div>
 
+            <!-- System Settings & Profile Section -->
             <div id="settings" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">System Settings & Profile</h2></div>
                 </div>
                 
                 <div class="settings-grid">
+                    
+                    <!-- Profile Settings Card -->
                     <div class="settings-card">
                         <h3>My Profile Settings</h3>
                         
-                        <div style="text-align: center; margin-top: 15px; margin-bottom: 25px;">
-                            <img id="settings-profile-preview" src="static/admin.png" alt="Profile Preview" style="width: 110px; height: 110px; border-radius: 50%; border: 4px solid #3b82f6; object-fit: cover; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                            <h4 style="margin: 12px 0 0 0; color: #0f172a; font-size: 16px; font-weight: 700;">System ID: <span id="settings-profile-id" style="color: #64748b; font-weight: normal;">-</span></h4>
+                        <div class="profile-preview-container">
+                            <img id="settings-profile-preview" src="static/admin.png" alt="Profile Preview" class="profile-preview-img">
+                            <h4 class="profile-id-heading">System ID: <span id="settings-profile-id" class="profile-id-text">-</span></h4>
                         </div>
 
-                        <div class="form-style" style="margin-top: 15px;">
-                            <div style="margin-bottom: 12px;">
-                                <label style="font-weight:bold; display:block; margin-bottom:5px;">Change Full Name</label>
-                                <input type="text" id="profile-name-input" class="filter-input" style="max-width:100%; width:90%;" value="">
+                        <div class="form-style settings-form">
+                            <div class="form-group mb-12">
+                                <label class="fw-bold mb-5 block">Change Full Name</label>
+                                <input type="text" id="profile-name-input" class="filter-input w-90" value="">
                             </div>
-                            <div style="margin-bottom: 12px;">
-                                <label style="font-weight:bold; display:block; margin-bottom:5px;">Email Address</label>
-                                <input type="email" id="profile-email-input" class="filter-input" style="max-width:100%; width:90%;" value="">
+                            <div class="form-group mb-12">
+                                <label class="fw-bold mb-5 block">Email Address</label>
+                                <input type="email" id="profile-email-input" class="filter-input w-90" value="">
                             </div>
-                            <div style="margin-bottom: 15px;">
-                                <label style="font-weight:bold; display:block; margin-bottom:5px;">Update Profile Avatar</label>
-                                <input type="file" id="profile-img-input" accept="image/*">
+                            <div class="form-group mb-15">
+                                <label class="fw-bold mb-5 block">Update Profile Avatar</label>
+                                <input type="file" id="profile-img-input" accept="image/png, image/jpeg">
                             </div>
-                            <button class="btn-save" onclick="openProfileAuthModal()">Update Profile</button>
+                            <button id="btn-update-profile" class="btn-save">Update Profile</button>
                             
-                            <hr style="border:0; border-top:1px solid #e2e8f0; margin: 25px 0 20px 0;">
+                            <hr class="settings-divider">
                             
+                            <!-- Password Change UI -->
                             <div id="pw-step-0">
-                                <button onclick="startPasswordChange()" style="background: #1e293b; color: #cbd5e1; border: none; padding: 14px 20px; border-radius: 8px; width: 100%; text-align: left; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.3s; font-family: inherit; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onmouseover="this.style.background='#334155'; this.style.color='white'" onmouseout="this.style.background='#1e293b'; this.style.color='#cbd5e1'">
-                                    <span style="font-size: 18px;">🔑</span> Change Security Password
+                                <button id="btn-start-pw-change" class="pw-toggle-btn">
+                                    <span class="icon-large">🔑</span> Change Security Password
                                 </button>
                             </div>
 
-                            <div id="pw-step-1" style="display: none; background: #f8fafc; padding: 18px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 10px;">
-                                <label style="font-weight:bold; display:block; margin-bottom:8px; color: #0f172a;">Step 1: Enter Current Password</label>
+                            <div id="pw-step-1" class="pw-step-card hidden-element">
+                                <label class="fw-bold mb-8 block color-dark">Step 1: Enter Current Password</label>
                                 
-                                <input type="text" name="fake_username_1" style="display:none;" aria-hidden="true" autocomplete="username">
+                                <input type="text" name="fake_username_1" class="hidden-element" aria-hidden="true" autocomplete="username">
+                                <input type="password" id="pw-current" class="filter-input w-100 mb-10 box-border" placeholder="Type your active password" autocomplete="new-password">
                                 
-                                <input type="password" id="pw-current" class="filter-input" style="max-width:100%; width:100%; margin-bottom: 10px; box-sizing: border-box;" placeholder="Type your active password" autocomplete="new-password">
-                                
-                                <div style="text-align: right; width: 100%; margin-bottom: 15px;">
-                                    <a href="forgot-password.html" style="color: #3b82f6; font-size: 13px; text-decoration: none; font-weight: 700;">Forgot Password?</a>
+                                <div class="forgot-pw-link">
+                                    <a href="forgot-password.php">Forgot Password?</a>
                                 </div>
-                                <div style="display: flex; gap: 10px;">
-                                    <button class="btn-save" style="background: #3b82f6; width: 50%; padding: 10px;" onclick="verifyCurrentPassword()">Next</button>
-                                    <button class="btn-cancel" style="width: 50%; padding: 10px;" onclick="cancelPasswordChange()">Cancel</button>
+                                <div class="flex-gap-10">
+                                    <button id="btn-verify-pw" class="btn-save w-50 p-10 btn-blue">Next</button>
+                                    <button class="btn-cancel w-50 p-10 btn-cancel-pw">Cancel</button>
                                 </div>
                             </div>
 
-                            <div id="pw-step-2" style="display: none; background: #f8fafc; padding: 18px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 10px;">
-                                <label style="font-weight:bold; display:block; margin-bottom:8px; color: #0f172a;">Step 2: Enter New Password</label>
+                            <div id="pw-step-2" class="pw-step-card hidden-element">
+                                <label class="fw-bold mb-8 block color-dark">Step 2: Enter New Password</label>
                                 
-                                <input type="text" name="fake_username_2" style="display:none;" aria-hidden="true" autocomplete="username">
+                                <input type="text" name="fake_username_2" class="hidden-element" aria-hidden="true" autocomplete="username">
+                                <input type="password" id="pw-new" class="filter-input w-100 mb-12 box-border" placeholder="Create new password" autocomplete="new-password">
                                 
-                                <input type="password" id="pw-new" class="filter-input" style="max-width:100%; width:100%; margin-bottom: 12px; box-sizing: border-box;" placeholder="Create new password" autocomplete="new-password">
+                                <label class="fw-bold mb-8 block color-dark">Confirm New Password</label>
+                                <input type="password" id="pw-confirm" class="filter-input w-100 mb-20 box-border" placeholder="Retype new password" autocomplete="new-password">
                                 
-                                <label style="font-weight:bold; display:block; margin-bottom:8px; color: #0f172a;">Confirm New Password</label>
-                                <input type="password" id="pw-confirm" class="filter-input" style="max-width:100%; width:100%; margin-bottom: 20px; box-sizing: border-box;" placeholder="Retype new password" autocomplete="new-password">
-                                
-                                <div style="display: flex; gap: 10px;">
-                                    <button class="btn-save" style="background: #10b981; width: 50%; padding: 10px;" onclick="confirmUpdatePassword()">Confirm</button>
-                                    <button class="btn-cancel" style="width: 50%; padding: 10px;" onclick="cancelPasswordChange()">Cancel</button>
+                                <div class="flex-gap-10">
+                                    <button id="btn-confirm-new-pw" class="btn-save w-50 p-10 btn-green">Confirm</button>
+                                    <button class="btn-cancel w-50 p-10 btn-cancel-pw">Cancel</button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Library Preferences Card -->
                     <div class="settings-card">
                         <h3>Library Preferences</h3>
-                        <div class="form-style" style="margin-top: 15px;">
-                            <div style="margin-bottom: 12px;">
-                                <label style="font-weight:bold; display:block; margin-bottom:5px;">Borrowing Period (Days)</label>
-                                <input type="number" id="pref-days" class="filter-input" style="max-width:100%; width:90%;">
+                        <div class="form-style settings-form mt-15">
+                            <div class="form-group mb-12">
+                                <label class="fw-bold mb-5 block">Borrowing Period (Days)</label>
+                                <input type="number" id="pref-days" class="filter-input w-90">
                             </div>
-                            <div style="margin-bottom: 15px;">
-                                <label style="font-weight:bold; display:block; margin-bottom:5px;">Late Fine Amount (Per Day - LKR)</label>
-                                <input type="number" id="pref-fine" class="filter-input" style="max-width:100%; width:90%;">
+                            <div class="form-group mb-15">
+                                <label class="fw-bold mb-5 block">Late Fine Amount (Per Day - LKR)</label>
+                                <input type="number" id="pref-fine" class="filter-input w-90">
                             </div>
-                            <button class="btn-save" onclick="updatePreferences()">Save Preferences</button>
+                        <button id="btn-save-prefs" class="btn-save" onclick="updatePreferences()">Save Preferences</button>
                         </div>
                     </div>
-
-                    <div class="settings-card">
-                        <h3>Data Backup</h3>
-                        <p style="color:#64748b; font-size:14px; margin-bottom:15px;">Download all localized books, students, and system data instantly.</p>
-                        <button class="btn-approve" onclick="downloadDatabaseBackup()">📥 Download Database Backup</button>
-                    </div>
-
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="admin-return-modal" class="modal-overlay" style="display: none; z-index: 9999;">
-        <div class="modal-content" style="text-align: center; max-width: 400px;">
-            <h3 style="color: #3b82f6; margin-bottom: 15px;">Process Return</h3>
+    <!-- Modals -->
+    
+    <!-- Return Book Modal -->
+    <div id="admin-return-modal" class="modal-overlay">
+        <div class="modal-content modal-sm text-center">
+            <h3 class="modal-title-blue">Process Return</h3>
             <p><strong>Book:</strong> <span id="ret-book-title"></span> (<span id="ret-book-id"></span>)</p>
             <p><strong>Student:</strong> <span id="ret-student-name"></span> (<span id="ret-student-id"></span>)</p>
-            <div style="background: #f1f5f9; padding: 10px; margin: 15px 0; border-radius: 8px;">
-                <p style="margin: 0; color: #ef4444; font-size: 18px; font-weight: bold;">Fine: Rs. <span id="ret-fine-amount">0.00</span></p>
+            <div class="fine-display-box">
+                <p class="fine-text">Fine: Rs. <span id="ret-fine-amount">0.00</span></p>
             </div>
-            <div class="modal-actions" style="justify-content: center; gap: 15px;">
-                <button class="btn-cancel" onclick="closeAdminReturnModal()">Cancel</button>
-                <button class="btn-save" style="background: #10b981;" onclick="confirmProcessReturn()">Confirm Return</button>
+            <div class="modal-actions flex-center gap-15">
+                <button id="btn-close-return" class="btn-cancel">Cancel</button>
+                <button id="btn-confirm-return" class="btn-save btn-green">Confirm Return</button>
             </div>
         </div>
     </div>
 
+    <!-- Profile Authentication Modal -->
     <div id="profile-auth-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Security Verification</h3>
             <p>Enter current password to save profile adjustments.</p>
             
-            <input type="text" name="fake_username_auth" style="display:none;" aria-hidden="true" autocomplete="username">
+            <input type="text" name="fake_username_auth" class="hidden-element" aria-hidden="true" autocomplete="username">
             <input id="profile-auth-password" class="modal-input" type="password" placeholder="Current Password" autocomplete="new-password">
             
-            <p id="profile-auth-error" style="color: #ef4444; font-size: 12px; margin-top: 8px; display: none; font-weight: bold;">Incorrect password! Try again.</p>
+            <p id="profile-auth-error" class="error-text hidden-element">Incorrect password! Try again.</p>
             <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeProfileAuthModal()">Cancel</button>
-                <button class="btn-save" style="background: #10b981;" onclick="confirmProfileAuth()">Confirm</button>
+                <button id="btn-close-auth" class="btn-cancel">Cancel</button>
+                <button id="btn-confirm-auth" class="btn-save btn-green">Confirm</button>
             </div>
         </div>
     </div>
 
-    <div id="pw-success-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-width: 320px; text-align: center; border-radius: 16px; padding: 30px;">
-            <div style="font-size: 50px; margin-bottom: 15px;">✅</div>
-            <h3 style="margin-top: 0; color: #0f172a; font-size: 20px;">Password Changed!</h3>
-            <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Your credentials have been successfully updated.</p>
-            <button class="btn-save" style="background: #10b981; width: 100%; margin-top: 0;" onclick="closePwSuccess()">OK</button>
+    <!-- Password Success Modal -->
+    <div id="pw-success-modal" class="modal-overlay">
+        <div class="modal-content modal-success-sm">
+            <div class="success-icon">✅</div>
+            <h3 class="success-title">Password Changed!</h3>
+            <p class="success-desc">Your credentials have been successfully updated.</p>
+            <button id="btn-close-success" class="btn-save btn-green w-100 mt-0">OK</button>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
-    <script src="js/app.js?v=11"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

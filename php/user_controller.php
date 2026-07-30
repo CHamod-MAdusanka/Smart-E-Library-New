@@ -7,13 +7,11 @@ function hasValidUpload(array $file, array $allowedMimeTypes, array $allowedExte
     if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) {
         return false;
     }
-
     $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     $detectedMime = mime_content_type($file['tmp_name']);
     if ($detectedMime === false) {
         $detectedMime = $file['type'] ?? '';
     }
-
     return in_array($detectedMime, $allowedMimeTypes, true) && in_array($extension, $allowedExtensions, true);
 }
 
@@ -46,7 +44,10 @@ switch ($action) {
         $stmt->bind_param("s", $studentId); $stmt->execute();
         $user = $stmt->get_result()->fetch_assoc();
 
-        if (($user['password'] ?? '') !== $password) { echo json_encode(["status" => "error", "message" => "Incorrect current password!"]); exit(); }
+        if (!password_verify($password, $user['password'] ?? '')) { 
+            echo json_encode(["status" => "error", "message" => "Incorrect current password!"]); 
+            exit(); 
+        }
 
         $picPath = null;
         if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === 0) {
@@ -92,26 +93,55 @@ switch ($action) {
     case 'update_admin_profile':
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $adminId = $_SESSION['admin_id'];
-        $pass = getJsonValue($data, 'password', '');
-        $fullName = getJsonValue($data, 'full_name', '');
-        $email = getJsonValue($data, 'email', '');
-        $pic = getJsonValue($data, 'profile_pic', '');
+        
+        // [FIXED] Receive values via POST since FormData is used instead of JSON
+        $pass = $_POST['password'] ?? getJsonValue($data, 'password', '');
+        $fullName = $_POST['full_name'] ?? getJsonValue($data, 'full_name', '');
+        $email = $_POST['email'] ?? getJsonValue($data, 'email', '');
 
         $stmt = $conn->prepare("SELECT password FROM admins WHERE work_id = ?");
         $stmt->bind_param("s", $adminId); $stmt->execute();
         $user = $stmt->get_result()->fetch_assoc();
 
-        if (($user['password'] ?? '') !== $pass) { echo json_encode(["status" => "error", "message" => "Incorrect current password!"]); exit(); }
+        if (!password_verify($pass, $user['password'] ?? '')) { 
+            echo json_encode(["status" => "error", "message" => "Incorrect current password!"]); 
+            exit(); 
+        }
 
         $nameParts = explode(" ", $fullName, 2);
         $fName = $nameParts[0]; $lName = isset($nameParts[1]) ? $nameParts[1] : '';
 
-        $update = $conn->prepare("UPDATE admins SET first_name=?, last_name=?, email=?, profile_pic=? WHERE work_id=?");
-        $update->bind_param("sssss", $fName, $lName, $email, $pic, $adminId);
+        // [FIXED] Process physical file upload instead of Base64 text
+        $picPath = null;
+        if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === 0) {
+            $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            if (!hasValidUpload($_FILES['profile_pic'], $allowedMimeTypes, $allowedExtensions)) {
+                echo json_encode(["status" => "error", "message" => "Only JPG, PNG, GIF, or WEBP profile pictures are allowed."]);
+                exit();
+            }
+
+            $targetDir = "../uploads/profiles/";
+            if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
+            $fileName = time() . "_admin_" . basename($_FILES["profile_pic"]["name"]);
+            $targetFilePath = $targetDir . $fileName;
+            if (move_uploaded_file($_FILES["profile_pic"]["tmp_name"], $targetFilePath)) {
+                $picPath = "uploads/profiles/" . $fileName; 
+            }
+        }
+
+        // [FIXED] Update database with file path, not Base64 text
+        if ($picPath) {
+            $update = $conn->prepare("UPDATE admins SET first_name=?, last_name=?, email=?, profile_pic=? WHERE work_id=?");
+            $update->bind_param("sssss", $fName, $lName, $email, $picPath, $adminId);
+        } else {
+            $update = $conn->prepare("UPDATE admins SET first_name=?, last_name=?, email=? WHERE work_id=?");
+            $update->bind_param("ssss", $fName, $lName, $email, $adminId);
+        }
 
         if($update->execute()) echo json_encode(["status" => "success", "message" => "Profile updated successfully!"]);
         else echo json_encode(["status" => "error", "message" => "Failed to update profile."]);
-        $stmt->close(); $update->close();
+        $stmt->close(); if(isset($update)) $update->close();
         break;
 
     // ==========================================
@@ -126,10 +156,12 @@ switch ($action) {
         $checkStmt->bind_param("s", $workId); $checkStmt->execute();
         if($checkStmt->get_result()->num_rows > 0) { echo json_encode(["status" => "error", "message" => "This Work ID already exists!"]); exit(); }
         $checkStmt->close();
+        
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
         $sql = "INSERT INTO admins (work_id, first_name, last_name, email, role, profile_pic, password) VALUES (?, ?, ?, ?, ?, ?, ?)";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("sssssss", $workId, $firstName, $lastName, $email, $role, $profilePic, $password);
+        $stmt->bind_param("sssssss", $workId, $firstName, $lastName, $email, $role, $profilePic, $hashedPassword);
         
         if ($stmt->execute()) echo json_encode(["status" => "success", "message" => "New Officer account created successfully!"]);
         else echo json_encode(["status" => "error", "message" => "Failed to create account."]);
@@ -273,6 +305,89 @@ switch ($action) {
             $conn->rollback();
             echo json_encode(["status" => "error", "message" => "Transfer failed."]);
         }
+        break;
+
+    // ==========================================
+    // === 13. UPDATE OFFICER PASSWORD ===
+    // ==========================================
+    case 'update_officer_password':
+        if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
+        
+        $officerId = getJsonValue($data, 'work_id', '');
+        $newPassword = getJsonValue($data, 'new_password', '');
+        if (empty($newPassword)) { $newPassword = getJsonValue($data, 'password', ''); }
+
+        if (empty($officerId) || empty($newPassword)) {
+            echo json_encode(["status" => "error", "message" => "Missing Officer ID or New Password!"]);
+            exit();
+        }
+
+        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+        $stmt = $conn->prepare("UPDATE admins SET password = ? WHERE work_id = ?");
+        $stmt->bind_param("ss", $hashedPassword, $officerId);
+        
+        if ($stmt->execute()) echo json_encode(["status" => "success", "message" => "Officer password updated successfully!"]);
+        else echo json_encode(["status" => "error", "message" => "Failed to update password."]);
+        $stmt->close();
+        break;
+
+    // ==========================================
+    // === 14. REMOVE OFFICER ===
+    // ==========================================
+    case 'remove_officer':
+        if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized access!"]); exit(); }
+        
+        $officerId = getJsonValue($data, 'work_id', '');
+        if (empty($officerId)) { echo json_encode(["status" => "error", "message" => "Officer ID is missing."]); exit(); }
+
+        $stmt = $conn->prepare("DELETE FROM admins WHERE work_id = ? AND role != 'Head Admin'");
+        $stmt->bind_param("s", $officerId);
+        
+        if ($stmt->execute()) {
+            if ($stmt->affected_rows > 0) echo json_encode(["status" => "success", "message" => "Officer account removed successfully!"]);
+            else echo json_encode(["status" => "error", "message" => "Officer not found or cannot remove Head Admin."]);
+        } else {
+            echo json_encode(["status" => "error", "message" => "Failed to remove officer account."]);
+        }
+        $stmt->close();
+        break;
+
+    // ==========================================
+    // === 15. CHANGE STUDENT PASSWORD ===
+    // ==========================================
+    case 'change_student_password':
+        if (!isset($_SESSION['student_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized access!"]); exit(); }
+        
+        $studentId = $_SESSION['student_id'];
+        $currentPassword = getJsonValue($data, 'current_password', '');
+        $newPassword = getJsonValue($data, 'new_password', '');
+
+        if (empty($currentPassword) || empty($newPassword)) {
+            echo json_encode(["status" => "error", "message" => "Please fill in all fields."]);
+            exit();
+        }
+
+        $stmt = $conn->prepare("SELECT password FROM students WHERE student_id = ?");
+        $stmt->bind_param("s", $studentId); $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows === 1) {
+            $user = $result->fetch_assoc();
+            if (password_verify($currentPassword, $user['password'])) {
+                $hashedNewPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+                $updateStmt = $conn->prepare("UPDATE students SET password = ? WHERE student_id = ?");
+                $updateStmt->bind_param("ss", $hashedNewPassword, $studentId);
+                
+                if ($updateStmt->execute()) echo json_encode(["status" => "success", "message" => "Password updated successfully!"]);
+                else echo json_encode(["status" => "error", "message" => "Failed to update password."]);
+                $updateStmt->close();
+            } else {
+                echo json_encode(["status" => "error", "message" => "Incorrect current password!"]);
+            }
+        } else {
+            echo json_encode(["status" => "error", "message" => "Student not found."]);
+        }
+        $stmt->close();
         break;
 
     default:

@@ -1,7 +1,15 @@
 <?php
 session_start();
+
+// Prevent browser caching to fix back-button navigation issues
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
+
+// Redirecting to .php instead of .html
 if (!isset($_SESSION['student_id'])) {
-    header('Location: student-login.html');
+    header('Location: student-login.php');
     exit;
 }
 ?>
@@ -16,24 +24,28 @@ if (!isset($_SESSION['student_id'])) {
 </head>
 <body>
 
+    <!-- Hidden inputs to prevent aggressive browser autofill -->
     <div style="position: absolute; left: -9999px;">
         <input type="text" tabindex="-1">
         <input type="password" tabindex="-1">
     </div>
 
+    <!-- Dashboard Header -->
     <div class="dashboard-header">
         <div class="header-left">
             <button id="menu-btn" class="menu-toggle-btn">☰</button>
             <span class="system-name">PUBLIC LIBRARY</span>
         </div>
         
+        <!-- Search Box -->
         <div class="header-center">
             <div class="search-box">
-                <input id="global-search" type="text" placeholder="Search..." autocomplete="new-password" data-lpignore="true">
+                <input id="global-search" type="search" placeholder="Search..." autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" data-lpignore="true">
                 <span class="search-icon">🔍</span>
             </div>
-        </div> 
-        
+        </div>
+
+        <!-- Profile & Dropdown -->
         <div class="header-right">
             <div class="dropdown">
                 <button class="profile-btn" onclick="toggleDropdown('profile-dropdown')"> 
@@ -48,8 +60,10 @@ if (!isset($_SESSION['student_id'])) {
         </div>
     </div>
 
+    <!-- Main Dashboard Container -->
     <div class="dashboard-container">        
         
+        <!-- Sidebar Navigation -->
         <div id="sidebar" class="sidebar">
             <ul class="sidebar-menu">
                 <li class="menu-item home-item active" onclick="showSection('home')">
@@ -61,25 +75,22 @@ if (!isset($_SESSION['student_id'])) {
                     HOME
                 </li>
                 <li class="menu-item" onclick="showSection('browse-books')">CATALOG & RESERVE</li>
-                
-                <!-- === Scan & Request Menu Item === -->
                 <li class="menu-item" onclick="showSection('scan-request')">SCAN & REQUEST</li>
-                <!-- =================================== -->
-                
                 <li class="menu-item" onclick="showSection('my-borrowings')">MY BORROWINGS</li>
                 <li class="menu-item" onclick="showSection('my-reservations')">MY RESERVATIONS</li>
                 <li class="menu-item settings-item" onclick="showSection('settings')">SETTINGS</li>
             </ul>
         </div>
         
+        <!-- Dynamic Content Display Area -->
         <div class="main-content" id="main-display-area">            
             
+            <!-- Home Section -->
             <div id="home" class="dynamic-section section-visible">
                 <div class="library-hero-full">
                     <img src="static/student.jpg" alt="Welcome to Library" class="hero-bg-img">
                     
                     <div class="overlay-stats-grid">
-                        
                         <div class="stat-card border-blue glass-card">
                             <h4>📚 Borrowed This Week</h4>
                             <div class="stat-books-list" id="student-borrowed-list">
@@ -97,13 +108,13 @@ if (!isset($_SESSION['student_id'])) {
                             <p style="margin-top: 10px; color: var(--bg-slate); font-weight: bold;">Overdue Days: <strong id="student-overdue-days" style="color: #ef4444; font-size: 16px;">0 Days</strong></p>
                             <h3 class="fine-amount" id="student-total-fine">Rs. 0.00</h3>
                         </div>
-
                     </div>
 
                     <div class="hero-teal-bar"></div>
                 </div>
             </div>
 
+            <!-- Browse Books Section -->
             <div id="browse-books" class="dynamic-section section-hidden">
                 <div class="browse-header-wrapper" style="margin-top: 20px;">
                     <div class="section-header" style="margin-bottom: 0;">
@@ -129,7 +140,7 @@ if (!isset($_SESSION['student_id'])) {
                 </div>
             </div>
 
-            <!-- === Scan & Request Section === -->
+            <!-- Scan & Request Section -->
             <div id="scan-request" class="dynamic-section section-hidden">
                 <div class="section-header" style="margin-top: 20px;">
                     <h2 class="section-title">Scan & Get Book</h2>
@@ -137,23 +148,24 @@ if (!isset($_SESSION['student_id'])) {
                 </div>
                 <div class="settings-grid" style="display: flex; justify-content: center; margin-top: 20px;">
                     <div class="settings-card" style="width: 100%; max-width: 500px; text-align: center;">
+                        
                         <!-- Camera Preview Box -->
                         <div id="student-qr-reader" style="width: 100%; margin: 0 auto 20px auto; display: none; border: 3px solid #4CB5A5; border-radius: 8px;"></div>
                         
                         <button class="btn-action btn-reserve" style="padding: 15px; font-size: 16px; width: 100%; margin-bottom: 10px;" onclick="startBookScanner()">📷 Start Camera & Scan Book</button>
                         
-                        <!-- අලුත් කොටස: QR Image Upload for Students -->
                         <div style="margin: 15px 0; border-bottom: 1px solid #e2e8f0; position: relative;">
                             <span style="background: white; padding: 0 10px; position: relative; top: 10px; color: #64748b; font-weight: bold;">OR</span>
                         </div>
                         
+                        <!-- QR Image Upload for Students -->
                         <input type="file" id="student-qr-upload-file" accept="image/*" style="display: none;" onchange="handleStudentQrFileUpload(event)">
                         <button class="btn-action" style="padding: 15px; font-size: 16px; width: 100%; margin-top: 10px; background: #334155; color: white; border: none; border-radius: 8px; cursor: pointer;" onclick="document.getElementById('student-qr-upload-file').click()">📂 Upload QR Image</button>
                     </div>
                 </div>
             </div>
-            <!-- =================================== -->
 
+            <!-- My Borrowings Section -->
             <div id="my-borrowings" class="dynamic-section section-hidden">
                 <div class="section-header" style="margin-top: 20px;">
                     <h2 class="section-title">My Borrowed Books</h2>
@@ -176,6 +188,7 @@ if (!isset($_SESSION['student_id'])) {
                 </div>
             </div>
 
+            <!-- My Reservations Section -->
             <div id="my-reservations" class="dynamic-section section-hidden">
                 <div class="section-header" style="margin-top: 20px;">
                     <h2 class="section-title">My Book Reservations</h2>
@@ -197,6 +210,7 @@ if (!isset($_SESSION['student_id'])) {
                 </div>
             </div>
 
+            <!-- Settings & Profile Section -->
             <div id="settings" class="dynamic-section section-hidden">
                 <div class="section-header" style="margin-top: 20px; text-align: center;">
                     <h2 class="section-title">Profile & Security Settings</h2>
@@ -222,6 +236,7 @@ if (!isset($_SESSION['student_id'])) {
                             </div>
                         </div>
 
+                        <!-- Profile View State -->
                         <div id="profile-view-state">
                             <div class="info-row">
                                 <span class="info-label">Full Name:</span>
@@ -244,12 +259,14 @@ if (!isset($_SESSION['student_id'])) {
                             
                             <hr style="border:0; border-top:1px solid #E2E8F0; margin: 25px 0 20px 0;">
                             
+                            <!-- Password Change Initiation -->
                             <div id="pw-step-0">
                                 <button onclick="startPasswordChange()" style="background: var(--bg-slate); color: var(--text-light); border: none; padding: 14px 20px; border-radius: 8px; width: 100%; text-align: left; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onmouseover="this.style.background='var(--bg-slate-dark)'" onmouseout="this.style.background='var(--bg-slate)'">
                                     <span style="font-size: 18px;">🔑</span> Change Security Password
                                 </button>
                             </div>
 
+                            <!-- Password Step 1: Verify Current Password -->
                             <div id="pw-step-1" style="display: none; background: #F8FAFC; padding: 18px; border-radius: 8px; border: 1px solid #E2E8F0; margin-top: 10px;">
                                 <label style="font-weight:bold; display:block; margin-bottom:8px; color: var(--bg-slate);">Step 1: Enter Current Password</label>
                                 <input type="password" id="pw-current" class="light-input" style="margin-bottom: 5px;" placeholder="Type your active password">
@@ -260,6 +277,7 @@ if (!isset($_SESSION['student_id'])) {
                                 </div>
                             </div>
 
+                            <!-- Password Step 2: Enter New Password -->
                             <div id="pw-step-2" style="display: none; background: #F8FAFC; padding: 18px; border-radius: 8px; border: 1px solid #E2E8F0; margin-top: 10px;">
                                 <label style="font-weight:bold; display:block; margin-bottom:8px; color: var(--bg-slate);">Step 2: Enter New Password</label>
                                 <input type="password" id="pw-new" class="light-input" style="margin-bottom: 12px;" placeholder="Create new password">
@@ -272,6 +290,7 @@ if (!isset($_SESSION['student_id'])) {
                             </div>
                         </div>
 
+                        <!-- Profile Edit State -->
                         <div id="profile-edit-state" style="display: none; background: #F8FAFC; padding: 20px; border-radius: 8px; border: 1px solid #E2E8F0;">
                             <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--bg-slate); border-bottom: 2px solid var(--accent-teal); padding-bottom: 8px; display: inline-block;">Edit Your Details</h4>
                             <div class="form-group" style="margin-bottom: 12px;">
@@ -296,6 +315,7 @@ if (!isset($_SESSION['student_id'])) {
                             </div>
                         </div>
 
+                        <!-- Profile Authentication State (for saving changes) -->
                         <div id="profile-auth-state" style="display: none; background: #FEF2F2; padding: 20px; border-radius: 8px; border: 1px solid #FCA5A5; margin-top: 10px;">
                             <h4 style="margin-top: 0; color: #B91C1C;">Authorize Changes</h4>
                             <p style="font-size: 13px; color: #7F1D1D; margin-bottom: 15px;">Please enter your current password to save these changes.</p>
@@ -330,9 +350,8 @@ if (!isset($_SESSION['student_id'])) {
         </div>
     </div>
 
-    <!-- Scanner Library Link -->
+    <!-- Scanner Library and App Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
-    <script src="js/scanner.js"></script>
     <script src="js/student-app.js"></script>
 </body>
 </html>

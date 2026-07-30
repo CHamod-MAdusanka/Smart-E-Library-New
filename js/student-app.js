@@ -3,8 +3,9 @@ let scannedBookId = "";
 let isScannerBusy = false;
 
 // ==========================================
-// === Navigation and Layout ===
+// === 1. Navigation and Layout ===
 // ==========================================
+// Initialize necessary elements upon page load
 document.addEventListener('DOMContentLoaded', function() {
     const menuBtn = document.getElementById('menu-btn');
     const container = document.querySelector('.dashboard-container');
@@ -19,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeProfilePictureListener();
     loadStudentProfileData();
 
-    // Load initial data
+    // Fetch initial data
     fetchStudentBorrowings();
     fetchBooks(); 
     fetchStudentReservations();
@@ -33,11 +34,16 @@ function showSection(sectionId) {
     const target = document.getElementById(sectionId);
     if(target) target.style.display = 'block';
 
+    // Remove active class from all menu items
     document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-    if(window.event && window.event.currentTarget) {
-        window.event.currentTarget.classList.add('active');
+    
+    // Set active class to the currently selected menu item
+    const activeMenuItem = document.querySelector(`.menu-item[onclick*="${sectionId}"]`);
+    if(activeMenuItem) {
+        activeMenuItem.classList.add('active');
     }
-
+    
+    // Stop the camera scanner if navigating to another page
     if (sectionId !== 'scan-request') {
         if (window.StudentBookScanner && typeof window.StudentBookScanner.stop === 'function') {
             window.StudentBookScanner.stop({ resetProcessing: true }).catch(() => {});
@@ -50,7 +56,7 @@ function showSection(sectionId) {
         }, 250);
     }
 
-    // Fetch data dynamically based on the active section
+    // Refetch necessary data based on the loaded section
     if(sectionId === 'home') {
         fetchStudentBorrowings();
     } else if (sectionId === 'browse-books') {
@@ -62,6 +68,7 @@ function showSection(sectionId) {
     }
 }
 
+// Show or hide profile dropdown
 function toggleDropdown(id) {
     document.getElementById(id).classList.toggle('show');
 }
@@ -79,10 +86,11 @@ window.onclick = function(event) {
 }
 
 // ==========================================
-// === Borrowing Countdown ===
+// === 2. Borrowing Countdown ===
 // ==========================================
 let countdownInterval = null;
 
+// Timer indicating the time left to return books
 function updateCountdownTimer(dueDates) {
     const timerElement = document.getElementById('return-timer');
     if (!timerElement) return;
@@ -125,8 +133,9 @@ function updateCountdownTimer(dueDates) {
 }
 
 // ==========================================
-// === Catalog Search and Filters ===
+// === 3. Catalog Search and Filters ===
 // ==========================================
+// Initialize search bar and filter buttons
 function initializeSearchAndFilters() {
     const searchInput = document.getElementById('global-search');
     const catalogSearch = document.getElementById('catalog-search');
@@ -154,6 +163,7 @@ function initializeSearchAndFilters() {
     });
 }
 
+// Filter and display books matching the typed name
 window.filterCatalog = function() {
     const searchInput = document.getElementById('catalog-search');
     const query = searchInput ? searchInput.value.toLowerCase() : '';
@@ -178,17 +188,18 @@ window.filterCatalog = function() {
 };
 
 // ==========================================
-// === Profile Management ===
+// === 4. Profile Management ===
 // ==========================================
 let localStudentData = {};
 
+// Fetch student profile data from the database
 async function loadStudentProfileData() {
     try {
         const response = await fetch('php/user_controller.php?action=get_student_profile');
         const result = await response.json();
 
         if (result.status === "error") {
-            window.location.href = "student-login.html"; 
+            window.location.href = "student-login.php"; 
             return;
         }
 
@@ -268,6 +279,7 @@ function cancelProfileAuth() {
     document.getElementById('profile-edit-state').style.display = 'block';
 }
 
+// Save updated profile details
 async function saveProfileChanges() {
     const pw = document.getElementById('auth-password').value;
     if(pw.trim() === '') {
@@ -309,7 +321,7 @@ async function saveProfileChanges() {
 }
 
 // ==========================================
-// === Password Change ===
+// === 5. Password Change ===
 // ==========================================
 function startPasswordChange() {
     document.getElementById('pw-step-0').style.display = 'none';
@@ -326,6 +338,7 @@ function verifyCurrentPassword() {
     document.getElementById('pw-confirm').value = '';
 }
 
+// Send and update the new password via user_controller.php (FIXED LINK)
 async function confirmUpdatePassword() {
     const currentPw = document.getElementById('pw-current').value.trim();
     const newPw = document.getElementById('pw-new').value;
@@ -335,14 +348,18 @@ async function confirmUpdatePassword() {
     if (newPw !== confirmPw) { alert("New password and confirm password do not match!"); return; }
     
     try {
-        const response = await fetch('php/auth_controller.php?action=change_student_password', {
+        const response = await fetch('php/user_controller.php?action=change_student_password', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ current_password: currentPw, new_password: newPw })
         });
+        
         const result = await response.json();
         alert(result.message);
-        if (result.status === 'success') cancelPasswordChange();
+        
+        if (result.status === 'success') {
+            cancelPasswordChange(); // Close the form upon success
+        }
     } catch (error) {
         alert("Something went wrong while updating the password.");
     }
@@ -355,8 +372,9 @@ function cancelPasswordChange() {
 }
 
 // =========================================
-// === Library Data Loading ===
+// === 6. Library Data Loading ===
 // =========================================
+// Load all library books into the catalog
 async function fetchBooks() {
     try {
         const response = await fetch('php/library_controller.php?action=get_books');
@@ -392,6 +410,7 @@ async function fetchBooks() {
     } catch(e) { console.error("Error fetching books", e); }
 }
 
+// Fetch currently borrowed books by the student
 async function fetchStudentBorrowings() {
     try {
         const response = await fetch('php/library_controller.php?action=get_student_borrowings');
@@ -437,6 +456,7 @@ async function fetchStudentBorrowings() {
     } catch(e) { console.error("Error fetching student borrowings", e); }
 }
 
+// Fetch the student's reserved books
 async function fetchStudentReservations() {
     try {
         const response = await fetch('php/library_controller.php?action=get_student_reservations');
@@ -521,9 +541,8 @@ async function cancelReservation(resId) {
 }
 
 // =========================================
-// === Self Checkout (Scan & Get Book) ===
+// === 7. Self Checkout (QR Scan & Get Book) ===
 // =========================================
-
 function startBookScanner() {
     const readerDiv = document.getElementById('student-qr-reader');
     if (!readerDiv) return;
@@ -556,7 +575,6 @@ async function restartScanner() {
         });
         return;
     }
-
     startBookScanner();
 }
 
@@ -598,6 +616,7 @@ function closeBookModal() {
     }
 }
 
+// Fetch book details from the database using the scanned QR Book ID
 async function handleBookScan(decodedText) {
     if (isScannerBusy) return;
     isScannerBusy = true;
@@ -646,6 +665,7 @@ async function handleBookScan(decodedText) {
     }
 }
 
+// Confirm issuing the book
 function confirmGetBook() {
     const btn = document.getElementById('btn-confirm-get');
     if (!btn) return;
@@ -689,7 +709,7 @@ function confirmGetBook() {
 }
 
 // =========================================
-// === QR File Upload Handler (Student) ===
+// === 8. QR File Upload Handler ===
 // =========================================
 function handleStudentQrFileUpload(event) {
     if (event.target.files.length === 0) return;
@@ -705,7 +725,7 @@ function handleStudentQrFileUpload(event) {
             handleBookScan(decodedText);
         })
         .catch(err => {
-            alert("QR කේතය කියවීමට නොහැකි විය! කරුණාකර පැහැදිලි පින්තූරයක් තෝරන්න.");
+            alert("Unable to read QR code! Please select a clear image.");
             console.error("QR Scan Error:", err);
         });
         

@@ -17,7 +17,7 @@ if (empty($action) && isset($data['action'])) { $action = $data['action']; }
 
 switch ($action) {
     // ==========================================
-    // === 1. UPDATE PREFERENCES ===
+    // === 1. UPDATE PREFERENCES (FIXED) ===
     // ==========================================
     case 'update_preferences':
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
@@ -38,8 +38,20 @@ switch ($action) {
         if(isset($data['borrow_days']) && isset($data['fine_amount'])) {
             $days = (int)getJsonValue($data, 'borrow_days', 0);
             $fine = (float)getJsonValue($data, 'fine_amount', 0);
-            $stmt = $conn->prepare("UPDATE system_settings SET borrowing_period=?, late_fine=? WHERE id=1");
-            $stmt->bind_param("id", $days, $fine);
+            
+            // Database එකේ කලින් Row එකක් තියෙනවද බලනවා
+            $check = $conn->query("SELECT id FROM system_settings WHERE id=1");
+            
+            if($check->num_rows > 0) {
+                // තිබුණොත් Update කරනවා
+                $stmt = $conn->prepare("UPDATE system_settings SET borrowing_period=?, late_fine=? WHERE id=1");
+                $stmt->bind_param("id", $days, $fine);
+            } else {
+                // තිබ්බේ නැත්නම් අලුතින් Insert කරනවා
+                $stmt = $conn->prepare("INSERT INTO system_settings (borrowing_period, late_fine, id) VALUES (?, ?, 1)");
+                $stmt->bind_param("id", $days, $fine);
+            }
+
             if($stmt->execute()) echo json_encode(["status" => "success", "message" => "Library preferences updated successfully!"]);
             else echo json_encode(["status" => "error", "message" => "Failed to update."]);
             $stmt->close();
@@ -70,15 +82,12 @@ switch ($action) {
         $res = $conn->query("SELECT count(*) as count FROM borrowings WHERE return_date IS NULL");
         if ($res) $stats['books_issued'] = $res->fetch_assoc()['count'];
 
-        // Pending reservations (not yet approved)
         $res = $conn->query("SELECT count(*) as count FROM reservations WHERE status='Pending'");
         if ($res) $stats['pending_reservations'] = $res->fetch_assoc()['count'];
 
-        // Active borrowings count
         $res = $conn->query("SELECT count(*) as count FROM borrowings WHERE return_date IS NULL");
         if ($res) $stats['active_borrowings'] = $res->fetch_assoc()['count'];
 
-        // Unread notification counts for specific sidebar badge sections
         $res = $conn->query("SELECT count(*) as count FROM notifications WHERE is_read = 0");
         if ($res) $stats['unread_notifications'] = $res->fetch_assoc()['count'];
         $res = $conn->query("SELECT count(*) as count FROM notifications WHERE is_read = 0 AND type = 'registration'");
@@ -94,7 +103,6 @@ switch ($action) {
     // ==========================================
     // === GET NOTIFICATIONS ===
     // ==========================================
-    // Connected to `js/app.js` fetchNotifications() to populate bell dropdown
     case 'get_notifications':
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $notifs = [];
@@ -117,7 +125,6 @@ switch ($action) {
     // ==========================================
     // === MARK NOTIFICATIONS READ ===
     // ==========================================
-    // Connected to `js/app.js` onBellClick() to clear unread notifications when user opens bell
     case 'mark_notifications_read':
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $conn->query("UPDATE notifications SET is_read = 1 WHERE is_read = 0");
@@ -127,7 +134,6 @@ switch ($action) {
     // ==========================================
     // === MARK NOTIFICATIONS READ BY TYPE ===
     // ==========================================
-    // Connected to `js/app.js` when a section is viewed to clear that section's notifications
     case 'mark_notifications_read_by_type':
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $type = getJsonValue($data, 'type', '');

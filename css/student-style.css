@@ -230,8 +230,6 @@ body {
 /* ========================================= */
 /* === Student Statistics === */
 /* ========================================= */
-
-
 .overlay-stats-grid {
     position: absolute;
     top: 50%;
@@ -251,7 +249,6 @@ body {
     text-align: center;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
-
 
 .glass-card {
     background: rgba(255, 255, 255, 0.85);
@@ -451,6 +448,7 @@ body {
 .form-group { margin-bottom: 15px; }
 .form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: bold; color: var(--bg-slate); }
 .settings-card { background: #FFFFFF; padding: 25px; border-radius: 8px; max-width: 400px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);}
+
 /* ========================================= */
 /* === Premium Animations === */
 /* ========================================= */

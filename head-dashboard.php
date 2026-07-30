@@ -1,7 +1,15 @@
 <?php
 session_start();
+
+// Prevent browser caching to fix back-button navigation issues
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
+
+// Redirecting to .php instead of .html
 if (!isset($_SESSION['admin_id'])) {
-    header('Location: admin-login.html');
+    header('Location: admin-login.php');
     exit;
 }
 ?>
@@ -16,6 +24,7 @@ if (!isset($_SESSION['admin_id'])) {
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Roboto+Slab:wght@900&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Top Navigation Header -->
     <div class="dashboard-header">
         <div class="header-left">
             <button id="menu-btn" class="menu-toggle-btn">☰</button>
@@ -30,6 +39,7 @@ if (!isset($_SESSION['admin_id'])) {
         </div> 
         
         <div class="header-right">
+            <!-- Notifications Dropdown -->
             <div class="dropdown">
                 <button class="icon-btn" id="bell-btn" onclick="onBellClick(event)">🔔<span class="badge" id="notif-badge" style="display:none;">0</span></button>
                 <div id="notification-dropdown" class="dropdown-content notif-dropdown">
@@ -37,6 +47,7 @@ if (!isset($_SESSION['admin_id'])) {
             </div>
             <div id="notification-toast-container" class="toast-container"></div>
             
+            <!-- Profile Dropdown -->
             <div class="dropdown">
                 <button class="profile-btn" onclick="toggleDropdown('profile-dropdown')"> 
                     <img id="header-profile-img" src="static/chamod.png" alt="Profile" class="profile-img">
@@ -50,7 +61,9 @@ if (!isset($_SESSION['admin_id'])) {
         </div>
     </div>
 
+    <!-- Main Dashboard Container -->
     <div class="dashboard-container">        
+        <!-- Sidebar Navigation -->
         <div id="sidebar" class="sidebar">
             <h2>Head Panel</h2>
             <ul class="sidebar-menu">
@@ -92,8 +105,10 @@ if (!isset($_SESSION['admin_id'])) {
             </ul>
         </div>
         
+        <!-- Dynamic Content Display Area -->
         <div class="main-content" id="main-display-area">            
             
+            <!-- Home Section -->
             <div id="home" class="dynamic-section" style="display: block;">
                 <div class="dashboard-cards">
                     <div class="card" id="stat-total-members">Total Members: -</div>
@@ -113,6 +128,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Active Borrowed Books -->
             <div id="active-books" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div>
@@ -140,6 +156,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
             
+            <!-- View Officers -->
             <div id="view-officers" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">View All Officers</h2></div>
@@ -159,6 +176,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Add Officer -->
             <div id="add-officer" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Add New Officer</h2></div>
@@ -191,6 +209,7 @@ if (!isset($_SESSION['admin_id'])) {
                     </div>
                 </div>
 
+                <!-- Active Officers Directory -->
                 <div class="directory-panel">
                     <div class="section-header">
                         <div><h3>Active Officers Directory</h3></div>
@@ -213,6 +232,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Remove Officer -->
             <div id="remove-officer" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Remove Officer</h2></div>
@@ -232,6 +252,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- View Members -->
             <div id="view-members" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">View All Students</h2></div>
@@ -255,6 +276,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Approve Registrations -->
             <div id="approve-registrations" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Approve New Registrations</h2></div>
@@ -279,6 +301,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Remove Member -->
             <div id="remove-member" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Remove Student</h2></div>
@@ -298,6 +321,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Add Book -->
             <div id="add-book" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Add New Book</h2></div>
@@ -342,6 +366,7 @@ if (!isset($_SESSION['admin_id'])) {
                     </div>
                 </div>
 
+                <!-- Book Inventory -->
                 <div class="directory-panel">
                     <div class="section-header">
                         <div><h3>Book Inventory</h3></div>
@@ -357,6 +382,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Remove Book -->
             <div id="remove-book" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Remove Book</h2></div>
@@ -382,6 +408,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Book Reservations -->
             <div id="book-reservations" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">Online Book Reservations</h2></div>
@@ -401,6 +428,7 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- Return Books (QR Scanner) -->
             <div id="return-books" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div>
@@ -425,11 +453,14 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
             </div>
 
+            <!-- System Settings & Profile -->
             <div id="settings" class="dynamic-section section-hidden">
                 <div class="section-header">
                     <div><h2 class="section-title">System Settings & Profile</h2></div>
                 </div>
                 <div class="settings-grid">
+                    
+                    <!-- Profile Settings -->
                     <div class="settings-card">
                         <h3>My Profile Settings</h3>
                         
@@ -455,6 +486,7 @@ if (!isset($_SESSION['admin_id'])) {
                             
                             <hr style="border:0; border-top:1px solid #e2e8f0; margin: 25px 0 20px 0;">
                             
+                            <!-- Password Change UI -->
                             <div id="pw-step-0">
                                 <button onclick="startPasswordChange()" style="background: #1e293b; color: #cbd5e1; border: none; padding: 14px 20px; border-radius: 8px; width: 100%; text-align: left; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.3s; font-family: inherit; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onmouseover="this.style.background='#334155'; this.style.color='white'" onmouseout="this.style.background='#1e293b'; this.style.color='#cbd5e1'">
                                     <span style="font-size: 18px;">🔑</span> Change Security Password
@@ -465,7 +497,7 @@ if (!isset($_SESSION['admin_id'])) {
                                 <label style="font-weight:bold; display:block; margin-bottom:8px; color: #0f172a;">Step 1: Enter Current Password</label>
                                 <input type="password" id="pw-current" class="filter-input" style="max-width:100%; width:100%; margin-bottom: 10px; box-sizing: border-box;" placeholder="Type your active password">
                                 <div style="text-align: right; width: 100%; margin-bottom: 15px;">
-                                    <a href="forgot-password.html" style="color: #3b82f6; font-size: 13px; text-decoration: none; font-weight: 700;">Forgot Password?</a>
+                                    <a href="forgot-password.php" style="color: #3b82f6; font-size: 13px; text-decoration: none; font-weight: 700;">Forgot Password?</a>
                                 </div>
                                 <div style="display: flex; gap: 10px;">
                                     <button class="btn-save" style="background: #3b82f6; width: 50%; padding: 10px;" onclick="verifyCurrentPassword()">Next</button>
@@ -486,6 +518,7 @@ if (!isset($_SESSION['admin_id'])) {
                         </div>
                     </div>
 
+                    <!-- Library Preferences -->
                     <div class="settings-card">
                         <h3>Library Preferences</h3>
                         <div class="form-style" style="margin-top: 15px;">
@@ -497,16 +530,18 @@ if (!isset($_SESSION['admin_id'])) {
                                 <label style="font-weight:bold; display:block; margin-bottom:5px;">Late Fine Amount (Per Day - LKR)</label>
                                 <input type="number" id="pref-fine" class="filter-input" style="max-width:100%; width:90%;" value="20">
                             </div>
-                            <button class="btn-save" onclick="updatePreferences()">Save Preferences</button>
+                        <button id="btn-save-prefs" class="btn-save" onclick="updatePreferences()">Save Preferences</button>
                         </div>
                     </div>
 
+                    <!-- Data Backup -->
                     <div class="settings-card">
                         <h3>Data Backup</h3>
                         <p style="color:#64748b; font-size:14px; margin-bottom:15px;">Download all localized books, students, and system data instantly.</p>
                         <button class="btn-approve" onclick="downloadDatabaseBackup()">📥 Download Database Backup</button>
                     </div>
 
+                    <!-- Danger Zone (Ownership Transfer / Delete Account) -->
                     <div class="settings-card danger-zone-card">
                         <h3 style="color:#ef4444;">Danger Zone</h3>
                         <p style="font-size:14px; color:#475569; margin-bottom:12px;">To delete your head account, transfer ownership rights first.</p>
@@ -525,6 +560,9 @@ if (!isset($_SESSION['admin_id'])) {
         </div>
     </div>
 
+    <!-- Modals -->
+
+    <!-- Return Confirm Modal -->
     <div id="admin-return-modal" class="modal-overlay" style="display: none; z-index: 9999;">
         <div class="modal-content" style="text-align: center; max-width: 400px;">
             <h3 style="color: #3b82f6; margin-bottom: 15px;">Process Return</h3>
@@ -540,6 +578,7 @@ if (!isset($_SESSION['admin_id'])) {
         </div>
     </div>
 
+    <!-- Profile Auth Modal -->
     <div id="profile-auth-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Security Verification</h3>
@@ -553,6 +592,7 @@ if (!isset($_SESSION['admin_id'])) {
         </div>
     </div>
 
+    <!-- Password Success Modal -->
     <div id="pw-success-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content" style="max-width: 320px; text-align: center; border-radius: 16px; padding: 30px;">
             <div style="font-size: 50px; margin-bottom: 15px;">✅</div>
@@ -562,7 +602,8 @@ if (!isset($_SESSION['admin_id'])) {
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
-    <script src="js/app.js?v=9"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

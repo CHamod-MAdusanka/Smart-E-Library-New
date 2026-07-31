@@ -438,7 +438,8 @@ if (!isset($_SESSION['admin_id'])) {
                 </div>
                 <div class="settings-grid" style="display: flex; justify-content: center; margin-top: 20px;">
                     <div class="settings-card" style="width: 100%; max-width: 500px; text-align: center;">
-                        <div id="admin-qr-reader" style="width: 100%; margin: 0 auto 20px auto; display: none; border: 3px solid #3b82f6; border-radius: 8px;"></div>
+                        <div id="admin-qr-reader" class="qr-reader-box hidden-element" style="display: none; width: 100%; min-height: 320px; border: 3px solid #3b82f6; border-radius: 8px; margin-bottom: 20px; overflow: hidden;"></div>
+                        <button id="btn-close-scanner" class="btn-danger" style="padding: 15px; font-size: 16px; width: 100%; margin-bottom: 10px; display: none;" onclick="stopAdminScanner()">✖ Close Camera</button>
                         
                         <button class="btn-approve" style="padding: 15px; font-size: 16px; width: 100%; margin-bottom: 10px;" onclick="startAdminScanner()">📷 Start Camera Scanner</button>
                         

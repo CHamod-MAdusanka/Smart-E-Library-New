@@ -5,23 +5,40 @@ require 'db_connect.php';
 
 // --- 1. Security Helper Functions ---
 
-// JSON වලින් එන දේවල් ගන්න
 function getJsonValue($dataArray, $key, $defaultValue = '') {
     return isset($dataArray[$key]) ? $dataArray[$key] : $defaultValue;
 }
 
-// XSS ආරක්ෂාව (Cross-Site Scripting නවත්වන්න)
 function escapeOutput($string) {
     if (is_null($string)) return null;
     return htmlspecialchars((string)$string, ENT_QUOTES, 'UTF-8');
 }
 
-// Request Method එක චෙක් කරන්න (CSRF අවදානම අඩු කරන්න)
 function requirePostMethod() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         echo json_encode(["status" => "error", "message" => "Invalid Request Method. POST required."]);
         exit();
     }
+}
+
+// --- Dynamic Settings ගන්න අලුත් Function එක ---
+function getSystemSettings($conn) {
+    // Default අගයන් (Database එකෙන් ගන්න බැරි වුණොත්)
+    $settings = ['fine_rate' => 10.0, 'borrowing_period' => 14]; 
+    
+    // ඔයාගේ Database එකේ තියෙන 'system_settings' table එකෙන් ගන්නවා
+    $res = $conn->query("SELECT late_fine, borrowing_period FROM system_settings LIMIT 1");
+    
+    if ($res && $res->num_rows > 0) {
+        $row = $res->fetch_assoc();
+        if (isset($row['late_fine']) && is_numeric($row['late_fine'])) {
+            $settings['fine_rate'] = (float)$row['late_fine'];
+        }
+        if (isset($row['borrowing_period']) && is_numeric($row['borrowing_period'])) {
+            $settings['borrowing_period'] = (int)$row['borrowing_period'];
+        }
+    }
+    return $settings;
 }
 
 $action = $_GET['action'] ?? '';
@@ -43,7 +60,6 @@ switch ($action) {
         $dateAdded = date("Y-m-d"); 
         $coverPath = "static/covers/default.png"; 
         
-        // --- 2. Secure Image Upload (File Upload Vulnerability Fix) ---
         if (!empty($coverData) && preg_match('/^data:image\/(\w+);base64,/', $coverData, $type)) {
             $base64Data = substr($coverData, strpos($coverData, ',') + 1);
             $decodedData = base64_decode($base64Data);
@@ -56,7 +72,6 @@ switch ($action) {
                 $allowed_mimes = ['image/jpeg' => 'jpg', 'image/png' => 'png'];
                 if (array_key_exists($mime_type, $allowed_mimes)) {
                     $extension = $allowed_mimes[$mime_type];
-                    // අහඹු නමක් ලබා දීම (Security Update)
                     $fileName = $bookId . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
                     $filePath = '../static/covers/' . $fileName; 
                     if(file_put_contents($filePath, $decodedData)){ 
@@ -74,8 +89,7 @@ switch ($action) {
         if ($stmt->execute()) {
             echo json_encode(["status" => "success", "message" => "Success: New book added!"]);
         } else {
-            // --- 3. Database Error Hiding (Information Disclosure Fix) ---
-            error_log("DB Error in add_book: " . $stmt->error); // Log to server, hide from user
+            error_log("DB Error in add_book: " . $stmt->error); 
             echo json_encode(["status" => "error", "message" => "System Error: Could not add the book."]);
         }
         $stmt->close();
@@ -86,30 +100,60 @@ switch ($action) {
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         
         $bookId = $data['book_id'];
-        $stmt = $conn->prepare("DELETE FROM books WHERE book_id = ?");
-        $stmt->bind_param("s", $bookId);
-        if ($stmt->execute()) {
-            if ($stmt->affected_rows > 0) echo json_encode(["status" => "success", "message" => "Book successfully removed!"]);
-            else echo json_encode(["status" => "error", "message" => "Error: Book not found."]);
-        } else {
-            error_log("DB Error in remove_book: " . $stmt->error);
+
+        $checkQuery = $conn->prepare("SELECT * FROM borrowings WHERE book_id=? AND return_date IS NULL");
+        $checkQuery->bind_param("s", $bookId);
+        $checkQuery->execute();
+        $result = $checkQuery->get_result();
+        
+        if ($result->num_rows > 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Cannot remove! This book is currently borrowed by a student. Please process the return first.']);
+            $checkQuery->close();
+            exit();
+        }
+        $checkQuery->close();
+
+        $conn->begin_transaction();
+        try {
+            $stmt1 = $conn->prepare("DELETE FROM reservations WHERE book_id=?");
+            $stmt1->bind_param("s", $bookId);
+            $stmt1->execute();
+            $stmt1->close();
+
+            $stmt2 = $conn->prepare("DELETE FROM books WHERE book_id=?");
+            $stmt2->bind_param("s", $bookId);
+            $stmt2->execute();
+            
+            if ($stmt2->affected_rows > 0) {
+                $conn->commit();
+                echo json_encode(["status" => "success", "message" => "Book successfully removed!"]);
+            } else {
+                $conn->rollback();
+                echo json_encode(["status" => "error", "message" => "Error: Book not found."]);
+            }
+            $stmt2->close();
+        } catch (Exception $e) {
+            $conn->rollback();
+            error_log("DB Error in remove_book: " . $e->getMessage());
             echo json_encode(["status" => "error", "message" => "System Error: Could not remove the book."]);
         }
-        $stmt->close();
         break;
 
     case 'get_active_borrowings':
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
-        $sql = "SELECT b.title, bw.book_id, s.full_name as student_name, s.email, bw.due_date, DATEDIFF(bw.due_date, CURDATE()) as days_left 
+        
+        $sysSettings = getSystemSettings($conn);
+        $fine_rate = $sysSettings['fine_rate'];
+
+        $sql = "SELECT b.title, bw.book_id, s.full_name as student_name, s.email, bw.due_date, DATEDIFF(CURDATE(), bw.due_date) as overdue_days 
                 FROM borrowings bw JOIN books b ON bw.book_id = b.book_id JOIN students s ON bw.student_id = s.student_id WHERE bw.return_date IS NULL";
         $result = $conn->query($sql);
         $borrowings = [];
         if ($result && $result->num_rows > 0) {
             while($row = $result->fetch_assoc()) {
-                $days = (int)$row['days_left'];
-                $overdue_days = $days < 0 ? abs($days) : 0;
+                $days = (int)$row['overdue_days'];
+                $overdue_days = $days > 0 ? $days : 0;
                 
-                // --- XSS Protection Added Here ---
                 $borrowings[] = [
                     'title' => escapeOutput($row['title']),
                     'book_id' => escapeOutput($row['book_id']),
@@ -117,7 +161,7 @@ switch ($action) {
                     'email' => escapeOutput($row['email']),
                     'due_date' => escapeOutput($row['due_date']),
                     'overdue_days' => $overdue_days,
-                    'fine' => $overdue_days * 10
+                    'fine' => $overdue_days * $fine_rate // Dynamic calculation
                 ];
             }
         }
@@ -127,7 +171,11 @@ switch ($action) {
     case 'get_student_borrowings':
         if (!isset($_SESSION['student_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $studentId = $_SESSION['student_id'];
-        $sql = "SELECT b.title, bw.book_id, bw.issue_date, bw.due_date, DATEDIFF(bw.due_date, CURDATE()) as days_left 
+        
+        $sysSettings = getSystemSettings($conn);
+        $fine_rate = $sysSettings['fine_rate'];
+
+        $sql = "SELECT b.title, bw.book_id, bw.issue_date, bw.due_date, DATEDIFF(CURDATE(), bw.due_date) as overdue_days 
                 FROM borrowings bw JOIN books b ON bw.book_id = b.book_id WHERE bw.return_date IS NULL AND bw.student_id = ?";
         $stmt = $conn->prepare($sql); $stmt->bind_param("s", $studentId); $stmt->execute();
         $result = $stmt->get_result();
@@ -135,14 +183,13 @@ switch ($action) {
         
         if ($result->num_rows > 0) {
             while($row = $result->fetch_assoc()) {
-                $days = (int)$row['days_left'];
-                $overdue_days = $days < 0 ? abs($days) : 0;
-                $fine = $overdue_days * 10;
+                $days = (int)$row['overdue_days'];
+                $overdue_days = $days > 0 ? $days : 0;
+                $fine = $overdue_days * $fine_rate;
                 
                 $total_fine += $fine;
                 if($overdue_days > $max_overdue_days) { $max_overdue_days = $overdue_days; }
                 
-                // --- XSS Protection Added Here ---
                 $borrowings[] = [
                     'title' => escapeOutput($row['title']),
                     'book_id' => escapeOutput($row['book_id']),
@@ -203,6 +250,10 @@ switch ($action) {
         requirePostMethod();
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $resId = $data['reservation_id'];
+        
+        $sysSettings = getSystemSettings($conn);
+        $borrow_days = $sysSettings['borrowing_period']; // Dynamic Borrowing Days
+
         $conn->begin_transaction();
         try {
             $stmt = $conn->prepare("SELECT student_id, book_id FROM reservations WHERE id=?");
@@ -210,8 +261,8 @@ switch ($action) {
             if($res->num_rows === 0) throw new Exception("Reservation not found.");
             $row = $res->fetch_assoc(); $studentId = $row['student_id']; $bookId = $row['book_id'];
             
-            $stmt2 = $conn->prepare("INSERT INTO borrowings (student_id, book_id, issue_date, due_date) VALUES (?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 14 DAY))");
-            $stmt2->bind_param("ss", $studentId, $bookId); $stmt2->execute();
+            $stmt2 = $conn->prepare("INSERT INTO borrowings (student_id, book_id, issue_date, due_date) VALUES (?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL ? DAY))");
+            $stmt2->bind_param("ssi", $studentId, $bookId, $borrow_days); $stmt2->execute();
             
             $stmt3 = $conn->prepare("UPDATE books SET status='Borrowed' WHERE book_id=?");
             $stmt3->bind_param("s", $bookId); $stmt3->execute();
@@ -227,7 +278,7 @@ switch ($action) {
             $notifStmt->bind_param("sss", $t, $resId, $msg);
             $notifStmt->execute();
             $notifStmt->close();
-            echo json_encode(["status" => "success", "message" => "Request Approved! Book issued for 14 days."]);
+            echo json_encode(["status" => "success", "message" => "Request Approved! Book issued for {$borrow_days} days."]);
         } catch (Exception $e) { 
             $conn->rollback(); 
             error_log("DB Error in approve_reservation: " . $e->getMessage());
@@ -247,7 +298,6 @@ switch ($action) {
         if($result->num_rows === 0) { echo json_encode(["status" => "error", "message" => "Reservation not found."]); exit(); }
         $reservation = $result->fetch_assoc();
         
-        // Only allow student to cancel their own, or allow admin to cancel any
         if (!isset($_SESSION['admin_id']) && ($reservation['student_id'] ?? '') !== $_SESSION['student_id']) {
             echo json_encode(["status" => "error", "message" => "Unauthorized"]);
             exit();
@@ -275,6 +325,9 @@ switch ($action) {
         $studentId = $_SESSION['student_id']; 
         $bookId = getJsonValue($data, 'book_id', '');
         
+        $sysSettings = getSystemSettings($conn);
+        $borrow_days = $sysSettings['borrowing_period']; // Dynamic Borrowing Days
+
         $conn->begin_transaction();
         try {
             $stmt = $conn->prepare("SELECT status FROM books WHERE book_id=?");
@@ -285,8 +338,8 @@ switch ($action) {
             if($res->num_rows === 0) throw new Exception("Book not found.");
             if($res->fetch_assoc()['status'] !== 'Available') throw new Exception("Sorry, this book is not available right now.");
             
-            $stmt2 = $conn->prepare("INSERT INTO borrowings (student_id, book_id, issue_date, due_date) VALUES (?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 14 DAY))");
-            $stmt2->bind_param("ss", $studentId, $bookId); 
+            $stmt2 = $conn->prepare("INSERT INTO borrowings (student_id, book_id, issue_date, due_date) VALUES (?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL ? DAY))");
+            $stmt2->bind_param("ssi", $studentId, $bookId, $borrow_days); 
             $stmt2->execute();
             
             $stmt3 = $conn->prepare("UPDATE books SET status='Borrowed' WHERE book_id=?");
@@ -294,7 +347,7 @@ switch ($action) {
             $stmt3->execute();
             
             $conn->commit();
-            echo json_encode(["status" => "success", "message" => "Success! The book has been issued to you."]);
+            echo json_encode(["status" => "success", "message" => "Success! The book has been issued to you for {$borrow_days} days."]);
         } catch (Exception $e) { 
             $conn->rollback();
             if ($e->getMessage() === "Book not found." || $e->getMessage() === "Sorry, this book is not available right now.") {
@@ -371,6 +424,9 @@ switch ($action) {
         if (!isset($_SESSION['admin_id'])) { echo json_encode(["status" => "error", "message" => "Unauthorized"]); exit(); }
         $bookId = $data['book_id'];
         
+        $sysSettings = getSystemSettings($conn);
+        $fine_rate = $sysSettings['fine_rate'];
+
         $sql = "SELECT bw.id as borrowing_id, bw.book_id, b.title, s.student_id, s.full_name, bw.due_date, DATEDIFF(CURDATE(), bw.due_date) as overdue_days 
                 FROM borrowings bw 
                 JOIN books b ON bw.book_id = b.book_id 
@@ -395,7 +451,7 @@ switch ($action) {
                 'full_name' => escapeOutput($row['full_name']),
                 'due_date' => escapeOutput($row['due_date']),
                 'overdue_days' => $overdue_days,
-                'fine' => $overdue_days * 10
+                'fine' => $overdue_days * $fine_rate
             ]]);
         } else {
             echo json_encode(["status" => "error", "message" => "මෙම පොත දැනට කිසිවෙකුට නිකුත් කර නොමැත (No active borrowing found)."]);

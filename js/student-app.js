@@ -48,6 +48,8 @@ function showSection(sectionId) {
         if (window.StudentBookScanner && typeof window.StudentBookScanner.stop === 'function') {
             window.StudentBookScanner.stop({ resetProcessing: true }).catch(() => {});
         }
+        const closeBtn = document.getElementById('btn-close-student-scanner');
+        if(closeBtn) closeBtn.style.display = 'none';
     } else {
         window.setTimeout(() => {
             if (document.getElementById('scan-request') && document.getElementById('scan-request').style.display === 'block') {
@@ -338,7 +340,7 @@ function verifyCurrentPassword() {
     document.getElementById('pw-confirm').value = '';
 }
 
-// Send and update the new password via user_controller.php (FIXED LINK)
+// Send and update the new password via user_controller.php 
 async function confirmUpdatePassword() {
     const currentPw = document.getElementById('pw-current').value.trim();
     const newPw = document.getElementById('pw-new').value;
@@ -543,83 +545,111 @@ async function cancelReservation(resId) {
 // =========================================
 // === 7. Self Checkout (QR Scan & Get Book) ===
 // =========================================
+let studentHtml5QrCode = null;
+
 function startBookScanner() {
     const readerDiv = document.getElementById('student-qr-reader');
+    const closeBtn = document.getElementById('btn-close-student-scanner');
     if (!readerDiv) return;
+    
     readerDiv.style.display = 'block';
+    if(closeBtn) closeBtn.style.display = 'block';
 
-    if (window.StudentBookScanner && typeof window.StudentBookScanner.start === 'function') {
-        window.StudentBookScanner.start({
-            onSuccess: handleBookScan,
-            onError: handleScannerError
-        }).catch(error => {
-            console.error('Unable to start scanner:', error);
-            alert('Unable to start the camera. Please allow camera access and try again.');
-        });
+    if (studentHtml5QrCode) {
+        try {
+            studentHtml5QrCode.stop().then(() => {
+                studentHtml5QrCode.clear();
+                launchStudentCamera(readerDiv);
+            }).catch(() => {
+                launchStudentCamera(readerDiv);
+            });
+            return;
+        } catch(e) {}
     }
+    launchStudentCamera(readerDiv);
+}
+
+function launchStudentCamera(readerDiv) {
+    studentHtml5QrCode = new Html5Qrcode("student-qr-reader");
+    Html5Qrcode.getCameras().then(cameras => {
+        if (cameras && cameras.length) {
+            let cameraId = cameras[0].id;
+            for (let i = 0; i < cameras.length; i++) {
+                if (cameras[i].label.toLowerCase().includes('back') || cameras[i].label.toLowerCase().includes('rear')) {
+                    cameraId = cameras[i].id;
+                    break;
+                }
+            }
+            
+            studentHtml5QrCode.start(
+                cameraId, 
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    handleBookScan(decodedText);
+                },
+                (errorMessage) => {
+                    // Frame scan errors can be ignored
+                }
+            ).catch(err => {
+                console.error("Camera start error:", err);
+                alert('Unable to start the camera. Please check camera permissions.');
+                readerDiv.style.display = 'none';
+                const closeBtn = document.getElementById('btn-close-student-scanner');
+                if(closeBtn) closeBtn.style.display = 'none';
+            });
+        } else {
+            alert('No camera devices found.');
+            readerDiv.style.display = 'none';
+        }
+    }).catch(err => {
+        console.error("Get cameras error:", err);
+        alert('Camera access denied or not supported.');
+        readerDiv.style.display = 'none';
+    });
+}
+
+window.stopStudentScannerManually = async function() {
+    if (studentHtml5QrCode) {
+        try {
+            await studentHtml5QrCode.stop();
+            studentHtml5QrCode.clear();
+        } catch(e) {}
+        studentHtml5QrCode = null;
+    }
+    const readerDiv = document.getElementById('student-qr-reader');
+    const closeBtn = document.getElementById('btn-close-student-scanner');
+    if(readerDiv) readerDiv.style.display = 'none';
+    if(closeBtn) closeBtn.style.display = 'none';
 }
 
 function stopBookScanner() {
-    if (window.StudentBookScanner && typeof window.StudentBookScanner.stop === 'function') {
-        return window.StudentBookScanner.stop({ resetProcessing: false });
-    }
-    return Promise.resolve(false);
+    return new Promise((resolve) => {
+        if (studentHtml5QrCode) {
+            studentHtml5QrCode.stop().then(() => {
+                try { studentHtml5QrCode.clear(); } catch(e) {}
+                studentHtml5QrCode = null;
+                resolve(true);
+            }).catch(() => {
+                studentHtml5QrCode = null;
+                resolve(false);
+            });
+        } else {
+            resolve(false);
+        }
+    });
 }
 
 async function restartScanner() {
-    if (window.StudentBookScanner && typeof window.StudentBookScanner.restart === 'function') {
-        window.StudentBookScanner.setProcessing(false);
-        await window.StudentBookScanner.restart({
-            onSuccess: handleBookScan,
-            onError: handleScannerError
-        });
-        return;
-    }
+    await stopBookScanner();
     startBookScanner();
 }
 
-function handleScannerError(error) {
-    const message = typeof error === 'string' ? error : error?.message || '';
-    if (!message) return;
-
-    if (message.toLowerCase().includes('permission') || message.toLowerCase().includes('not allowed') || message.toLowerCase().includes('camera')) {
-        alert('Camera access was blocked. Please allow camera permissions and try again.');
-    }
-}
-
-function populateBookModal(book) {
-    const titleEl = document.getElementById('qr-modal-title');
-    const authorEl = document.getElementById('qr-modal-author');
-    const coverEl = document.getElementById('qr-modal-cover');
-    const modalEl = document.getElementById('qr-book-modal');
-
-    if (!modalEl) {
-        console.error('QR checkout modal container is missing from the page.');
-        return;
-    }
-
-    if (titleEl) titleEl.textContent = book.title || 'Untitled Book';
-    if (authorEl) authorEl.textContent = book.author || 'Unknown Author';
-    if (coverEl) coverEl.src = book.cover_img ? book.cover_img : 'static/covers/default.png';
-
-    modalEl.style.display = 'flex';
-    modalEl.style.alignItems = 'center';
-    modalEl.style.justifyContent = 'center';
-    modalEl.setAttribute('aria-hidden', 'false');
-}
-
-function closeBookModal() {
-    const modalEl = document.getElementById('qr-book-modal');
-    if (modalEl) {
-        modalEl.style.display = 'none';
-        modalEl.setAttribute('aria-hidden', 'true');
-    }
-}
-
-// Fetch book details from the database using the scanned QR Book ID
 async function handleBookScan(decodedText) {
     if (isScannerBusy) return;
     isScannerBusy = true;
+
+    const closeBtn = document.getElementById('btn-close-student-scanner');
+    if(closeBtn) closeBtn.style.display = 'none';
 
     const scannedValue = (decodedText || '').toString().trim();
     if (!scannedValue) {
@@ -719,8 +749,8 @@ function handleStudentQrFileUpload(event) {
 
     html5QrCode.scanFile(file, true)
         .then(decodedText => {
-            if (window.StudentBookScanner && typeof window.StudentBookScanner.isActive === 'function' && window.StudentBookScanner.isActive()) {
-                window.StudentBookScanner.stop({ resetProcessing: true }).catch(e => console.log(e));
+            if (studentHtml5QrCode) {
+                studentHtml5QrCode.stop().catch(e => console.log(e));
             }
             handleBookScan(decodedText);
         })
@@ -730,4 +760,32 @@ function handleStudentQrFileUpload(event) {
         });
         
     event.target.value = ""; 
+}
+function populateBookModal(book) {
+    const titleEl = document.getElementById('qr-modal-title');
+    const authorEl = document.getElementById('qr-modal-author');
+    const coverEl = document.getElementById('qr-modal-cover');
+    const modalEl = document.getElementById('qr-book-modal');
+
+    if (!modalEl) {
+        console.error('QR checkout modal container is missing from the page.');
+        return;
+    }
+
+    if (titleEl) titleEl.textContent = book.title || 'Untitled Book';
+    if (authorEl) authorEl.textContent = book.author || 'Unknown Author';
+    if (coverEl) coverEl.src = book.cover_img ? book.cover_img : 'static/covers/default.png';
+
+    modalEl.style.display = 'flex';
+    modalEl.style.alignItems = 'center';
+    modalEl.style.justifyContent = 'center';
+    modalEl.setAttribute('aria-hidden', 'false');
+}
+
+function closeBookModal() {
+    const modalEl = document.getElementById('qr-book-modal');
+    if (modalEl) {
+        modalEl.style.display = 'none';
+        modalEl.setAttribute('aria-hidden', 'true');
+    }
 }

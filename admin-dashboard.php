@@ -368,7 +368,10 @@ if (!isset($_SESSION['admin_id'])) {
                     <div class="settings-card scanner-card">
                         
                         <!-- Scanner Render Area -->
-                        <div id="admin-qr-reader" class="qr-reader-box hidden-element"></div>
+                        <div id="admin-qr-reader" class="qr-reader-box hidden-element" style="display: none; width: 100%; min-height: 320px; border: 3px solid #3b82f6; border-radius: 8px; margin-bottom: 20px; overflow: hidden;"></div>
+                        
+                        <!-- Close Scanner Button (Hidden initially) -->
+                        <button id="btn-close-scanner" class="btn-danger full-width-btn mb-10" style="display: none;" onclick="stopAdminScanner()">✖ Close Camera</button>
                         
                         <button id="btn-start-scanner" class="btn-approve full-width-btn mb-10">📷 Start Camera Scanner</button>
                         

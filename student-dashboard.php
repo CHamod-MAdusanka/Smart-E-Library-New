@@ -149,8 +149,10 @@ if (!isset($_SESSION['student_id'])) {
                 <div class="settings-grid" style="display: flex; justify-content: center; margin-top: 20px;">
                     <div class="settings-card" style="width: 100%; max-width: 500px; text-align: center;">
                         
-                        <!-- Camera Preview Box -->
-                        <div id="student-qr-reader" style="width: 100%; margin: 0 auto 20px auto; display: none; border: 3px solid #4CB5A5; border-radius: 8px;"></div>
+                    <!-- Camera Preview Box -->
+                    <div id="student-qr-reader" style="width: 100%; min-height: 320px; margin: 0 auto 20px auto; display: none; border: 3px solid #4CB5A5; border-radius: 8px; overflow: hidden;"></div>
+                        <!-- Close Camera Button (Hidden by default) -->
+                        <button id="btn-close-student-scanner" class="btn-action btn-danger" style="padding: 15px; font-size: 16px; width: 100%; margin-bottom: 10px; display: none;" onclick="stopStudentScannerManually()">✖ Close Camera</button>
                         
                         <button class="btn-action btn-reserve" style="padding: 15px; font-size: 16px; width: 100%; margin-bottom: 10px;" onclick="startBookScanner()">📷 Start Camera & Scan Book</button>
                         

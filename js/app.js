@@ -178,7 +178,10 @@ function showSection(sectionId) {
 
     if (sectionId !== 'return-books' && adminBookScanner) {
         adminBookScanner.clear().catch(e => console.log(e));
-        document.getElementById('admin-qr-reader').classList.add('hidden-element');
+        const readerDiv = document.getElementById('admin-qr-reader');
+        const closeBtn = document.getElementById('btn-close-scanner');
+        if(readerDiv) { readerDiv.classList.add('hidden-element'); readerDiv.style.display = 'none'; }
+        if(closeBtn) { closeBtn.style.display = 'none'; }
         adminBookScanner = null;
     }
 
@@ -715,11 +718,30 @@ window.cancelAdminReservation = async function(resId) {
 // =========================================
 function startAdminScanner() {
     const readerDiv = document.getElementById('admin-qr-reader');
+    const closeBtn = document.getElementById('btn-close-scanner');
+    
     readerDiv.classList.remove('hidden-element');
+    readerDiv.style.display = 'block';
+    if(closeBtn) closeBtn.style.display = 'block';
     
     if (adminBookScanner && typeof adminBookScanner.stop === 'function') {
         adminBookScanner.stop().then(() => { try { adminBookScanner.clear(); } catch(e) {} initAdminScanner(); }).catch(e => { initAdminScanner(); });
     } else { initAdminScanner(); }
+}
+
+window.stopAdminScanner = function() {
+    if(adminBookScanner) {
+        if (typeof adminBookScanner.stop === 'function') {
+            adminBookScanner.stop().then(() => { try { adminBookScanner.clear(); } catch(e) {} }).catch(e => { console.log(e); });
+        } else if (typeof adminBookScanner.clear === 'function') {
+            try { adminBookScanner.clear(); } catch(e) {}
+        }
+        adminBookScanner = null;
+    }
+    const readerDiv = document.getElementById('admin-qr-reader');
+    const closeBtn = document.getElementById('btn-close-scanner');
+    if(readerDiv) { readerDiv.classList.add('hidden-element'); readerDiv.style.display = 'none'; }
+    if(closeBtn) { closeBtn.style.display = 'none'; }
 }
 
 function initAdminScanner() {
@@ -735,11 +757,14 @@ function initAdminScanner() {
 
 function onAdminScanSuccess(decodedText) {
     const scannedBookId = decodedText.trim();
+    const closeBtn = document.getElementById('btn-close-scanner');
+    if(closeBtn) closeBtn.style.display = 'none';
+
     if(adminBookScanner) {
         if (typeof adminBookScanner.stop === 'function') {
-            adminBookScanner.stop().then(() => { try { adminBookScanner.clear(); } catch(e) {} document.getElementById('admin-qr-reader').classList.add('hidden-element'); adminBookScanner = null; }).catch(e => { console.log(e); });
+            adminBookScanner.stop().then(() => { try { adminBookScanner.clear(); } catch(e) {} document.getElementById('admin-qr-reader').classList.add('hidden-element'); document.getElementById('admin-qr-reader').style.display = 'none'; adminBookScanner = null; }).catch(e => { console.log(e); });
         } else if (typeof adminBookScanner.clear === 'function') {
-            try { adminBookScanner.clear(); } catch(e) {} document.getElementById('admin-qr-reader').classList.add('hidden-element'); adminBookScanner = null;
+            try { adminBookScanner.clear(); } catch(e) {} document.getElementById('admin-qr-reader').classList.add('hidden-element'); document.getElementById('admin-qr-reader').style.display = 'none'; adminBookScanner = null;
         }
     }
     
@@ -766,7 +791,9 @@ function handleAdminQrFileUpload(event) {
     html5QrCode.scanFile(file, true).then(decodedText => {
             if (adminBookScanner && typeof adminBookScanner.stop === 'function') {
                 adminBookScanner.stop().then(() => { try { adminBookScanner.clear(); } catch(e) {} }).catch(() => {});
-                adminBookScanner = null; document.getElementById('admin-qr-reader').classList.add('hidden-element');
+                adminBookScanner = null; 
+                document.getElementById('admin-qr-reader').classList.add('hidden-element');
+                document.getElementById('admin-qr-reader').style.display = 'none';
             }
             onAdminScanSuccess(decodedText);
         }).catch(err => { alert("Unable to read QR code! Please select a clear image."); });
